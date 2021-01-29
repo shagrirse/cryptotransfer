@@ -4,7 +4,7 @@ cmd_GET_MENU = "GET_MENU"
 cmd_END_DAY = "CLOSING"
 default_menu = "menu_today.txt"
 default_save_base = "result-"
-
+aushdgasuiodguia
 def process_connection( conn , ip_addr, MAX_BUFFER_SIZE):
     blk_count = 0
     net_bytes = conn.recv(MAX_BUFFER_SIZE)
