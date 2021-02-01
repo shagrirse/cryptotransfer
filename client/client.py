@@ -26,6 +26,8 @@ from Cryptodome.Signature import pkcs1_15
 from Cryptodome.PublicKey import RSA
 # Importing pickle Module for serialising Python objects
 import pickle
+# Importing Diffie-Hellman Key Exchange to perform Diffle-Hellman Key Exchange operations
+import pyDH
 
 # Font Styles (Colours and Colour of Background)
 # Red Bold Font with Red Background
@@ -125,26 +127,16 @@ def gettingDHServerPublicKey():
 
 # A function that performs Diffle-Hellman Key Exchange
 def diffieHellmanKeyExchange():
-    # Making the value of p and g available to diffieHellmanKeyExchangeCalculations function
-    global p
-    global a
-    # Global Parameters
-    # p is a large prime integer
-    p = 1009
-    # g is a primitive root modulo of p
-    g = 9
-    # Generating a secret key randomly for Diffie-Hellman Key Exchange
-    a = random.randint(1, 1008)
-    # Calculating client public key
-    clientDHPublicKey = (g**a) % p
+    # Generating client public key
+    clientDHPublicKey = pyDH.DiffieHellman().gen_public_key()
     # Returning the value of client public key
     return clientDHPublicKey
 
 
 # A function that performs Diffle-Hellman Key Exchange Calculations
 def diffieHellmanKeyExchangeCalculations(serverDHPublicKey):
-    # Calculating session key
-    sessionKey = (serverDHPublicKey**a) % p
+    # Generating session key
+    sessionKey = pyDH.DiffieHellman().gen_shared_key(serverDHPublicKey)
     # Hashing the session key to be a AES 256-bit session key
     AESSessionKey = hashlib.sha256(sessionKey.encode()).hexdigest()
     # Returning the value of AES Session Key
@@ -156,14 +148,17 @@ def AESOperation():
     with open("day_end.csv", "rb") as f:
         # Extracting data in bytes
         unencryptedData = f.read()
-        # Generating AES IV
-        AESIV = get_random_bytes(16)
+        # Generating AES Nonce
+        # Maximum AES Nonce size is 96 bits or 12 bytes
+        AESNonce = get_random_bytes(12)
         # Instantiating AES cipher
         AESCipher = AES.new(diffieHellmanKeyExchangeCalculations(
-            serverDHPublicKey), AES.MODE_CTR, AESIV)
+            serverDHPublicKey), AES.MODE_CTR, nonce=AESNonce)
         # AES block size is 128 bits or 16 bytes
         AESEncryptedData = AESCipher.encrypt(
             pad(unencryptedData, AES.block_size))
+        # Appending AES Nonce at the end of the encrypted data
+        AESEncryptedData = AESEncryptedData + AESNonce
         # Returning ASES Encrypted Data in bytes
         return AESEncryptedData
 
@@ -281,13 +276,13 @@ def AESDecryptionOperation(encryptedDataReceived, HMACReceived, serverDigest, se
         serverDigest, serverPublicKey, serverSignature)
     # If the HMAC verification and signature verification is successful, the codes below will execute
     if HMACResult == True and signatureResult == True:
-        # Extracting AES IV
-        AESIV = encryptedDataReceived[:AES.block_size]
+        # Extracting AES Nonce
+        AESNonce = encryptedDataReceived[-12:]
         # Extracting AES Encrypted Data
-        AESEncryptedData = encryptedDataReceived[AES.block_size:]
+        AESEncryptedData = encryptedDataReceived[:-12]
         # Instantiating AES cipher
         AESCipher = AES.new(diffieHellmanKeyExchangeCalculations(
-            serverDHPublicKey), AES.MODE_CTR, AESIV)
+            serverDHPublicKey), AES.MODE_CTR, nonce=AESNonce)
         # AES block size is 128 bits or 16 bytes
         AESUnencryptedData = unpad(AESCipher.decrypt(
             AESEncryptedData), AES.block_size)
