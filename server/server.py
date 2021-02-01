@@ -27,18 +27,22 @@ class clientEncryptedPayload:
         self.clientPublicKey = b""
         self.digest = ""
 
-def AESEncrypt(text, key, BLOCK_SIZE = 16):
+def AESEncrypt(text, key, BLOCK_SIZE = 16, key_bool = False):
     non = get_random_bytes(12)
     if type(text) == bytes: text_in_bytes = text
     else: text_in_bytes = text.encode()
     cipher = AES.new(key, AES.MODE_CTR, nonce = non)
     cipher_text_bytes = cipher.encrypt(pad(text_in_bytes, BLOCK_SIZE))
-    cipher_text_bytes = bytes(bytearray(cipher_text_bytes) + non)
+    if key_bool == True: cipher_text_bytes = bytes(bytearray(cipher_text_bytes) + non)
+    print("\nNonce:")
+    print(non)
     return cipher_text_bytes
 
-def AESDecrypt(content_in_bytes, key, BLOCK_SIZE = 16):
+def AESDecrypt(content_in_bytes, key, BLOCK_SIZE = 16, key_bool = False):
+    print("\nNonce:")
     non = content_in_bytes[-12:]
-    content_in_bytes = bytes(bytearray(content_in_bytes[:-12]))
+    content_in_bytes = bytearray(content_in_bytes[:-12])
+    content_in_bytes = bytes(content_in_bytes)
     cipher = AES.new(key, AES.MODE_CTR, nonce = non)
     # Now decrypt the text using your new cipher
     decrypted_text_bytes = unpad(cipher.decrypt(content_in_bytes), BLOCK_SIZE)
@@ -65,19 +69,41 @@ def process_connection( conn , ip_addr, passwd, MAX_BUFFER_SIZE):
                 return
             elif cmd_END_DAY in usr_cmd: # ask for to save end day order
                 now = datetime.datetime.now()
-                filename = default_save_base +  ip_addr + "-" + now.strftime("%Y-%m-%d_%H%M")
+                filename = default_save_base +  ip_addr + "-" + now.strftime("%Y-%m-%d_%H%M%f")
                 dest_file = open("server/database/" + filename,"wb")
                 if not os.path.exists("server/database/key"):
-                    key_file = open("server/database/key", "wb")
                     random_text = (''.join(random.choices(string.ascii_uppercase + string.ascii_lowercase + string.digits, k = 512))).encode('utf-8')
                     random_key = sha256(random_text).digest()
-                    encryptedData = AESEncrypt(net_bytes[len(cmd_END_DAY):], random_key)
-                    dest_file.write(encryptedData)
-                    key_file.write(AESEncrypt(random_key, passwd.digest()))
+                    
+                    non = get_random_bytes(12)
+                    # if type(text) == bytes: text_in_bytes = text
+                    # else: text_in_bytes = text.encode()
+                    cipher = AES.new(random_key, AES.MODE_CTR, nonce = non)
+                    cipher_text_bytes = cipher.encrypt(pad(net_bytes[len(cmd_END_DAY):], 16))
+                    cipher_text_bytes = bytes(bytearray(cipher_text_bytes) + non)
+                    # if key_bool == True: cipher_text_bytes = bytes(bytearray(cipher_text_bytes) + non)
+                    
+                    dest_file.write(cipher_text_bytes)
+                    
+                    key_file = open("server/database/key", "wb")
+                    non = get_random_bytes(12)
+                    print(non)
+                    cipher = AES.new(passwd.digest(), AES.MODE_CTR, nonce = non)
+                    cipher_text_bytes = cipher.encrypt(pad(random_key, 16))
+                    print(cipher_text_bytes)
+                    cipher_text_bytes = f"{cipher_text_bytes}{non}"
+                    print(cipher_text_bytes)
+                    key_file.write(cipher_text_bytes)
                 else:
-                    key_file = AESDecrypt(open("server/database/key", "rb").readline(), passwd.digest())
-                    encryptedData = AESEncrypt(net_bytes[len(cmd_END_DAY):], key_file)
-                    dest_file.write(encryptedData)
+                    file = open("server/database/key", "rb").readline()
+                    non = file[-12:]
+                    wow = bytes(bytearray(file[:-12]))
+                    my_cipher = AES.new(passwd.digest(), AES.MODE_CTR, nonce = non)
+                    # Now decrypt the text using your new cipher
+                    decrypted_text_bytes = unpad(my_cipher.decrypt(wow), 16)
+                    # Print the message in UTF8 (normal readable way
+                    decrypted_text = decrypted_text_bytes.decode()
+                    print("Decrypted text: " ,  decrypted_text)
                 blk_count = blk_count + 1
         else:  # write other blocks
             net_bytes = conn.recv(MAX_BUFFER_SIZE)
@@ -139,7 +165,8 @@ def user_login():
         passwd = sha256(password_input.encode('utf-8'))
         while True:
             if not bcrypt.checkpw(password_input.encode('utf-8'), file):
-                password_input= input("Error.Please enter a password: ")
+                password_input= input("Error. Please enter a password: ")
+                password_input = sha256(password_input.encode('utf-8')).hexdigest()
             else:
                 print("Login Successful. Server Starting...")
                 time.sleep(2)
@@ -162,6 +189,5 @@ def user_login():
                 file.write(hashed.decode('utf-8'))
             time.sleep(2)
             start_server(passwd)
-        
+start_server(sha256('passwordpassword1'.encode('utf-8')))
 user_login()
-
