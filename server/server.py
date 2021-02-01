@@ -7,18 +7,19 @@ from Cryptodome.Cipher import AES
 from Cryptodome.Util.Padding import pad, unpad
 from Cryptodome.Random import get_random_bytes
 import os
-import random
-import string
+import socket
+import threading
 
+SERVER_IP = socket.gethostbyname(socket.gethostname()) # Get IP address from current machine
+ADDRESS = (SERVER_IP, 5050) # Store server IP and port number in the 'ADDRESS' variable
+DC_MSG = "!DISCONNECT FROM SERVER!" # Disconnect message sent from client to server to drop session
 cmd_GET_MENU = "GET_MENU"
 cmd_END_DAY = "CLOSING"
 default_menu = "server\menu_today.txt"
 default_save_base = "result-"
-# Send function to send item to client
-def send(message, s):
-    msg = pickle.dumps(message)
-    s.send(msg)
-    
+server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+server.bind(ADDRESS)
+
 class clientEncryptedPayload:
     def __init__(self):
         self.encryptedFile = ""
@@ -26,136 +27,73 @@ class clientEncryptedPayload:
         self.digitalSignature = ""
         self.clientPublicKey = b""
         self.digest = ""
+        
+# Send function to send item to client
+def send(message, s):
+    msg = pickle.dumps(message)
+    s.send(msg)
+    
+def receive_data(s):
+    BUFF_SIZE = 8192
+    data = b''
+    while True:
+        packet = s.recv(BUFF_SIZE)
+        data += packet
+        if len(packet) < BUFF_SIZE:
+            break
+    data = pickle.loads(data)
+    return data
 
-def AESEncrypt(text, key, BLOCK_SIZE = 16, key_bool = False):
-    non = get_random_bytes(12)
-    if type(text) == bytes: text_in_bytes = text
-    else: text_in_bytes = text.encode()
-    cipher = AES.new(key, AES.MODE_CTR, nonce = non)
-    cipher_text_bytes = cipher.encrypt(pad(text_in_bytes, BLOCK_SIZE))
-    if key_bool == True: cipher_text_bytes = bytes(bytearray(cipher_text_bytes) + non)
-    print("\nNonce:")
-    print(non)
+def AESEncrypt(text, key, BLOCK_SIZE = 16):
+    nonce = get_random_bytes(12)
+    cipher = AES.new(key, AES.MODE_CTR, nonce = nonce)  # new AES cipher using key generated
+    cipher_text_bytes = cipher.encrypt(pad(text,BLOCK_SIZE)) # encrypt data
+    cipher_text_bytes = cipher_text_bytes + nonce
+    print(cipher_text_bytes)
     return cipher_text_bytes
 
-def AESDecrypt(content_in_bytes, key, BLOCK_SIZE = 16, key_bool = False):
-    print("\nNonce:")
-    non = content_in_bytes[-12:]
-    content_in_bytes = bytearray(content_in_bytes[:-12])
-    content_in_bytes = bytes(content_in_bytes)
-    cipher = AES.new(key, AES.MODE_CTR, nonce = non)
+def AESDecrypt(cipher_text_bytes, key, BLOCK_SIZE = 16):
+    cipher_text_bytes, nonce = cipher_text_bytes[:-12] , cipher_text_bytes[-12:]
+    # create a new AES cipher object with the same key and mode
+    my_cipher = AES.new(key,AES.MODE_CTR, nonce = nonce)
     # Now decrypt the text using your new cipher
-    decrypted_text_bytes = unpad(cipher.decrypt(content_in_bytes), BLOCK_SIZE)
+    decrypted_text_bytes = unpad(my_cipher.decrypt(cipher_text_bytes),BLOCK_SIZE)
     # Print the message in UTF8 (normal readable way
     decrypted_text = decrypted_text_bytes.decode()
     return decrypted_text
 
-def process_connection( conn , ip_addr, passwd, MAX_BUFFER_SIZE):
-    blk_count = 0
-    net_bytes = conn.recv(MAX_BUFFER_SIZE)
-    dest_file = open("temp","w")
-    while net_bytes != b'':
-        if blk_count == 0: #  1st block
-            usr_cmd = net_bytes[0:15].decode("utf8").rstrip()
-            if cmd_GET_MENU in usr_cmd: # ask for menu
-                src_file = open(default_menu,"rb")
-                while True:
-                    read_bytes = src_file.read(MAX_BUFFER_SIZE)
-                    if read_bytes == b'':
-                        break
-                    send(read_bytes, conn)
-                src_file.close()
-                print("Processed SENDING menu")
-                return
-            elif cmd_END_DAY in usr_cmd: # ask for to save end day order
-                now = datetime.datetime.now()
-                filename = default_save_base +  ip_addr + "-" + now.strftime("%Y-%m-%d_%H%M%f")
-                dest_file = open("server/database/" + filename,"wb")
-                if not os.path.exists("server/database/key"):
-                    random_text = (''.join(random.choices(string.ascii_uppercase + string.ascii_lowercase + string.digits, k = 512))).encode('utf-8')
-                    random_key = sha256(random_text).digest()
-                    
-                    non = get_random_bytes(12)
-                    # if type(text) == bytes: text_in_bytes = text
-                    # else: text_in_bytes = text.encode()
-                    cipher = AES.new(random_key, AES.MODE_CTR, nonce = non)
-                    cipher_text_bytes = cipher.encrypt(pad(net_bytes[len(cmd_END_DAY):], 16))
-                    cipher_text_bytes = bytes(bytearray(cipher_text_bytes) + non)
-                    # if key_bool == True: cipher_text_bytes = bytes(bytearray(cipher_text_bytes) + non)
-                    
-                    dest_file.write(cipher_text_bytes)
-                    
-                    key_file = open("server/database/key", "wb")
-                    non = get_random_bytes(12)
-                    print(non)
-                    cipher = AES.new(passwd.digest(), AES.MODE_CTR, nonce = non)
-                    cipher_text_bytes = cipher.encrypt(pad(random_key, 16))
-                    print(cipher_text_bytes)
-                    cipher_text_bytes = f"{cipher_text_bytes}{non}"
-                    print(cipher_text_bytes)
-                    key_file.write(cipher_text_bytes)
-                else:
-                    file = open("server/database/key", "rb").readline()
-                    non = file[-12:]
-                    wow = bytes(bytearray(file[:-12]))
-                    my_cipher = AES.new(passwd.digest(), AES.MODE_CTR, nonce = non)
-                    # Now decrypt the text using your new cipher
-                    decrypted_text_bytes = unpad(my_cipher.decrypt(wow), 16)
-                    # Print the message in UTF8 (normal readable way
-                    decrypted_text = decrypted_text_bytes.decode()
-                    print("Decrypted text: " ,  decrypted_text)
-                blk_count = blk_count + 1
-        else:  # write other blocks
-            net_bytes = conn.recv(MAX_BUFFER_SIZE)
-            dest_file.write(net_bytes)
-    # last block / empty block
-    dest_file.close()
-    print("Processed CLOSING done")
-
-
-def client_thread(conn, ip, port, passwd, MAX_BUFFER_SIZE = 4096):
-    process_connection( conn, ip, passwd, MAX_BUFFER_SIZE)
-    conn.close()  # close connection
-    print('Connection ' + ip + ':' + port + " ended")
-
-def start_server(passwd):
-
-    import socket
-    soc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    # this is for easy starting/killing the app
-    soc.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    print('Socket created')
-
-    try:
-        soc.bind(("127.0.0.1", 8888))
-        print('Socket bind complete')
-    except socket.error as msg:
-        import sys
-        print('Bind failed. Error : ' + str(sys.exc_info()))
-        print( msg.with_traceback() )
-        sys.exit()
-
-    #Start listening on socket
-    soc.listen(10)
-    print('Socket now listening')
-
-    # for handling task in separate jobs we need threading
-    from threading import Thread
-
-    # this will make an infinite loop needed for
-    # not reseting server for every client
+def handler(conn, addr, passwd):
+    now = datetime.datetime.now()
     while True:
-        conn, addr = soc.accept()
-        ip, port = str(addr[0]), str(addr[1])
-        print('Accepting connection from ' + ip + ':' + port)
         try:
-            Thread(target=client_thread, args=(conn, ip, port, passwd)).start()
-        except:
-            print("Terible error!")
-            import traceback
-            traceback.print_exc()
-    soc.close()
-    
+            message = receive_data(conn)
+            if cmd_GET_MENU in message: # ask for menu
+                src_file = open(default_menu,"rb")
+                # TODO: Encryption
+                conn.send(src_file)
+                src_file.close()
+            elif cmd_END_DAY in message:
+                filename = default_save_base +  addr[0] + "-" + now.strftime("%Y-%m-%d_%H%M")
+                dest_file = open("server/database/" + filename,"wb")
+                
+                message = message[ len(cmd_END_DAY): ] # remove the CLOSING header
+                if not os.path.exists("server/database/key"):
+                    random_key = get_random_bytes(32)
+                    info_encrypted = AESEncrypt(message, random_key)
+                    dest_file.write(info_encrypted)
+                else:
+                    print()
+        except: print()
+
+def start(passwd):
+    server.listen()
+    print(f"[LISTENING] SERVER IS LISTENING ON {SERVER_IP}")
+    while True:
+        conn, addr = server.accept()
+        thread = threading.Thread(target=handler, args=(conn, addr, passwd))
+        thread.start()
+        print(f"[ACTIVE CONNECTIONS] {threading.activeCount() - 1}")
+
 def user_login():
     # Try to open file
     try:
@@ -170,7 +108,7 @@ def user_login():
             else:
                 print("Login Successful. Server Starting...")
                 time.sleep(2)
-                start_server(passwd)
+                start(passwd)
             
     # If file does not exist, prompt user to create login
     except Exception as e:
@@ -188,6 +126,6 @@ def user_login():
                 hashed = bcrypt.hashpw(hashed.encode('utf-8'), bcrypt.gensalt())
                 file.write(hashed.decode('utf-8'))
             time.sleep(2)
-            start_server(passwd)
-start_server(sha256('passwordpassword1'.encode('utf-8')))
-user_login()
+            start(passwd)
+start(sha256('passwordpassword1'.encode('utf-8')))
+# user_login()
