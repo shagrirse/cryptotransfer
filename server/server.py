@@ -9,6 +9,7 @@ from Cryptodome.Random import get_random_bytes
 import os
 import socket
 import threading
+import pyDH
 
 SERVER_IP = socket.gethostbyname(socket.gethostname()) # Get IP address from current machine
 ADDRESS = ("127.0.0.1", 8888) # Store server IP and port number in the 'ADDRESS' variable
@@ -72,18 +73,20 @@ def handler(conn, addr, passwd):
                 # TODO: Encryption
                 conn.send(src_file)
                 src_file.close()
-            elif cmd_END_DAY in message:
+            elif type(message) == clientEncryptedPayload:
                 filename = default_save_base +  addr[0] + "-" + now.strftime("%Y-%m-%d_%H%M")
                 dest_file = open("server/database/" + filename,"wb")
-                
-                message = message[ len(cmd_END_DAY): ] # remove the CLOSING header
+                print("lol")
                 if not os.path.exists("server/database/key"):
                     random_key = get_random_bytes(32)
                     info_encrypted = AESEncrypt(message, random_key)
                     dest_file.write(info_encrypted)
                 else:
                     print()
-        except: print()
+            break
+        except Exception as e:
+            print(e)
+            break
 
 def start(passwd):
     server.listen()
