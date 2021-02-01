@@ -11,7 +11,7 @@ import socket
 import threading
 
 SERVER_IP = socket.gethostbyname(socket.gethostname()) # Get IP address from current machine
-ADDRESS = (SERVER_IP, 5050) # Store server IP and port number in the 'ADDRESS' variable
+ADDRESS = ("127.0.0.1", 8888) # Store server IP and port number in the 'ADDRESS' variable
 DC_MSG = "!DISCONNECT FROM SERVER!" # Disconnect message sent from client to server to drop session
 cmd_GET_MENU = "GET_MENU"
 cmd_END_DAY = "CLOSING"
