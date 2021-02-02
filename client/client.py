@@ -34,7 +34,7 @@ redHighlight = "\x1b[1;37;41m"
 normalText = "\x1b[0;37;40m"
 
 # Server's hostname or IP address
-HOST = "127.0.0.1"
+HOST = socket.gethostbyname(socket.gethostname())
 # The port used by the server
 PORT = 8888
 # GET_MENU command

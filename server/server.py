@@ -12,7 +12,7 @@ import threading
 import pyDH
 
 SERVER_IP = socket.gethostbyname(socket.gethostname()) # Get IP address from current machine
-ADDRESS = ("127.0.0.1", 8888) # Store server IP and port number in the 'ADDRESS' variable
+ADDRESS = (SERVER_IP, 8888) # Store server IP and port number in the 'ADDRESS' variable
 DC_MSG = "!DISCONNECT FROM SERVER!" # Disconnect message sent from client to server to drop session
 cmd_GET_MENU = "GET_MENU"
 cmd_END_DAY = "CLOSING"
@@ -28,7 +28,7 @@ class clientEncryptedPayload:
         self.digitalSignature = ""
         self.clientPublicKey = b""
         self.digest = ""
-        
+
 # Send function to send item to client
 def send(message, s):
     msg = pickle.dumps(message)
@@ -68,7 +68,9 @@ def handler(conn, addr, passwd):
     while True:
         try:
             message = receive_data(conn)
-            if cmd_GET_MENU in message: # ask for menu
+            if type(message) == pyDH.DiffieHellman:
+                # TODO: Generate DH public key and send to client
+            elif cmd_GET_MENU in message: # ask for menu
                 src_file = open(default_menu,"rb")
                 # TODO: Encryption
                 conn.send(src_file)
