@@ -1,4 +1,6 @@
 import datetime
+import cryptodome
+
 
 cmd_GET_MENU = "GET_MENU"
 cmd_END_DAY = "CLOSING"
