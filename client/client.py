@@ -317,7 +317,7 @@ dataToServer(encryptedPayloadSent())
 # Generate client RSA public key
 def ClientRSAPublicKeygenerate():
     # Generate 2048-bit long RSA Key pair
-    ClientRSAkey = RSA.generate(2048)
+    ClientPublicRSAKey = RSA.generate(2048).publickey()
     # Open file to write RSA key
     f = open('clientrsakey.pem','wb')
     # Write RSA key in the file
@@ -344,3 +344,6 @@ def ClientRSAPrivateKeygenerate():
     ClientPrivateRSAKey = ClientRSAkey.has_private()
     # Return RSA key
     return ClientPrivateRSAkey
+
+def encryptPayloadWithRSA(payload):
+    payload = 

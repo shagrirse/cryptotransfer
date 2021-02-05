@@ -141,7 +141,7 @@ start(sha256('passwordpassword1'.encode('utf-8')))
 # Generate server RSA public key
 def ServerRSAPublicKeygenerate():
     # Generate 2048-bit long RSA Key pair
-    ServerRSAkey = RSA.generate(2048)
+    ServerPublicRSAkey = RSA.generate(2048).publickey()
     # Open file to write RSA key
     f = open('serverrsakey.pem','wb')
     # Write RSA key in the file
@@ -160,7 +160,7 @@ def ClientRSAPublicKeyreceive():
     # Return the RSA key
     return ClientPublicRSAkey
 
-# Generate client RSA private key
+# Generate server RSA private key
 def ServerRSAPrivateKeygenerate():
     # Generate 2048-bit long RSA Key pair
     ServerRSAkey = RSA.generate(2048)
