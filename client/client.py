@@ -317,3 +317,19 @@ dataToServer(encryptedPayloadSent())
 #Generate RSA key
 RSAkey = RSA.generate(2048)
 
+# Transit Codes
+# Generate RSA public key
+def RSAgenerate():
+    # Generate 2048-bit long RSA Key pair
+    RSAkey = RSA.generate(2048)
+    # Open file to write RSA key
+    f = open('rsakey.pem','wb')
+    # Write RSA key in the file
+    f.write(key.export_key('PEM'))
+    # Close the file
+    f.close()
+    # Return RSA key
+    return RSAkey
+
+def encryptAESwithRSA():
+    
