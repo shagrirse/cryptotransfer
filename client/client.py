@@ -300,7 +300,7 @@ def generateClientRSAKeyPair():
     # Generate 2048-bit long client RSA Key pair
     clientRSAKeyPair = RSA.generate(2048)
     # Extracting client RSA public key
-    clientRSAPublicKey = clientRSAKeyPair.publickey()
+    clientRSAPublicKey = clientRSAKeyPair.publickey().export_key()
 
     # Enabling the client socket to send information to the server
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as clientSocket:
@@ -333,6 +333,7 @@ def receiveServerRSAPublicKey():
     print("Server's RSA public key has been received from the server!")
     # Closing the connection between the server and the client
     clientSocket.close()
+    receivedServerPublicRSAKey = RSA.import_key(receivedServerPublicRSAKey)
     # Return the server RSA public key
     return receivedServerPublicRSAKey
 
