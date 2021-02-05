@@ -345,5 +345,11 @@ def ClientRSAPrivateKeygenerate():
     # Return RSA key
     return ClientPrivateRSAkey
 
+# Encrypting the payload with Client RSA public key
 def encryptPayloadWithRSA(payload):
-    payload = 
+    # To use the value of ClientPublicRSAKey in the function
+    import ClientPublicRSAKey
+    # Encrypt payload
+    RSApayload = payload.encrypt(ClientPublicRSAKey)
+    # Return encrypted payload
+    return RSApayload
