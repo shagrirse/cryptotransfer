@@ -1,7 +1,3 @@
-# Note:
-# Data sent or received to and from server not encrypted by RSA
-# All client functions have been finalised
-
 # Importing socket Module to perform socket operations
 import socket
 # Importing Random Module for generating random numbers
@@ -37,29 +33,46 @@ normalText = "\x1b[0;37;40m"
 HOST = "127.0.0.1"
 # The port used by the server
 PORT = 8888
-ADDRESS = (HOST,PORT)
+# Address that contains server's hostname or IP address and port used by the server
+ADDRESS = (HOST, PORT)
 # GET_MENU command
 cmd_GET_MENU = b"GET_MENU"
 # CLOSING command
 cmd_END_DAY = b"CLOSING"
 
+# Enabling the client socket to send and receive information to and from the server
 clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+# Enabling the client socket to contact the server using defined address and port number
 clientSocket.connect(ADDRESS)
-# Send function to send item to client
+
+
+# A function that sends information to the server
 def send(message, s):
+    # Serialising the information to be sent to the server
     msg = pickle.dumps(message)
+    # Sending information to the server
     s.send(msg)
-    
+
+
+# A function that receives information from the server
 def receive_data(s):
+    # Setting buffer size
     BUFF_SIZE = 8192
+    # Initialising data variable as an empty byte string
     data = b''
     while True:
+        # Receiving information from the server
         packet = s.recv(BUFF_SIZE)
+        # Appending information received from the server to data variable
         data += packet
+        # If the length of the packet is less than the buffer size, it will break the While loop
         if len(packet) < BUFF_SIZE:
             break
+    # Unserialising the information received from the server
     data = pickle.loads(data)
+    # Returning the data received
     return data
+
 
 # A function that receives menu.txt file from server
 def dataFromServer():
@@ -71,7 +84,7 @@ def dataFromServer():
     clientSocket.close()
     # Indicating that the data has been sent to the server
     print(f"Length of data received from server: {len(data)}")
-    # Returning the value received
+    # Returning the data received
     return data
 
 
@@ -99,13 +112,14 @@ def gettingDHServerPublicKey():
     data = receive_data(clientSocket)
     # Indicating that the data has been sent to the server
     print(f"Length of data received from server: {len(data)}")
-    # Returning the value received
+    # Returning the data received
     return data
 
 
 # A function that performs Diffle-Hellman Key Exchange
 def diffieHellmanKeyExchange():
     # Generating client public key
+    # The client public key is an integer
     clientDHPublicKey = pyDH.DiffieHellman(5).gen_public_key()
     # Returning the value of client public key
     return clientDHPublicKey
@@ -275,21 +289,21 @@ def AESDecryptionOperation(encryptedDataReceived, HMACReceived, serverDigest, se
 # Transit Codes
 # A function that generates client RSA key pair
 def generateClientRSAKeyPair():
-    # Generate 2048-bit long client RSA Key pair
+    # Generate 4096-bit long client RSA Key pair
     clientRSAKeyPair = RSA.generate(4096)
     # Extracting client RSA public key
     clientRSAPublicKey = clientRSAKeyPair.publickey().export_key()
-
+    # Sending information to the server
     send(clientRSAPublicKey, clientSocket)
     # Indicating that the data has been sent to the server
     print("Client's RSA public key has been sent to the server!")
-
     # Returning client RSA private key
     return clientRSAKeyPair
 
 
 # A function that receives Server RSA public key
 def receiveServerRSAPublicKey():
+    # Receiving information from the server
     receivedServerPublicRSAKey = receive_data(clientSocket)
     # Indicating that the data has been received from the server
     print("Server's RSA public key has been received from the server!")
@@ -329,7 +343,8 @@ def encryptDiffieHellman(clientDHPublicKey):
     # Instantiating RSA cipher
     RSACipher = PKCS1_OAEP.new(serverRSAPublicKey)
     # Encrypting client Diffle-Hellman public key with server RSA public key
-    encryptedclientDHPublicKey = RSACipher.encrypt(str(clientDHPublicKey).encode())
+    encryptedclientDHPublicKey = RSACipher.encrypt(
+        str(clientDHPublicKey).encode())
     # Returning encrypted client Diffle-Hellman public key
     return encryptedclientDHPublicKey
 
@@ -345,8 +360,9 @@ def decryptDiffieHellman(serverDHPublicKey):
     # Returning decrypted client Diffle-Hellman public key
     return decryptedServerDHPublicKey
 
+
+# Main program
 try:
-    # Main program
     # Getting client private key for decryption operations
     sessionClientRSAPrivateKey = generateClientRSAKeyPair()
 
@@ -369,8 +385,11 @@ try:
 
     # Sending day_end.csv file to server
     dataToServer(encryptPayloadWithRSA(encryptedPayloadSent()))
+
+# For debugging use, to be removed once the code has been finalised
 except:
     import traceback
     print(traceback.format_exc())
 
+# Closing the connection between the server and the client
 clientSocket.close()
