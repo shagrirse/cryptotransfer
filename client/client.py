@@ -363,7 +363,7 @@ def decryptPayloadwithRSA(serverEncryptedPayload):
     # Return decrypted payload
     return serverDecryptedPayload
 
-# Encrypt Diffie Hellman Public Key
+# Encrypt Diffie Hellman Public Key on Client
 def encryptDiffie(clientDHPublicKey):
     # To use the value of ClientPublicRSAKey in the fucntion
     import ServerPublicRSAKey
@@ -371,3 +371,12 @@ def encryptDiffie(clientDHPublicKey):
     clientEncryptedDHPublicKey = clientDHPublicKey.encrypt(ServerPublicRSAKey)
     # Return Encrypted DH Public Key
     return clientEncryptedDHPublicKey
+
+# Encrypt Diffie Hellman Public Key from Server
+def encryptDiffie(serverDHPublicKey):
+    # To use the value of ClientPublicRSAKey in the fucntion
+    import ClientPrivateRSAKey
+    # Encrypt DH Public Key with Server RSA Public Key
+    decryptedServerDHPublicKey = ServerDHPublicKey.decrypt(ClientPrivateRSAKey)
+    # Return Encrypted DH Public Key
+    return decryptedServerDHPublicKey
