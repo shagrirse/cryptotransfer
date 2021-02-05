@@ -314,18 +314,33 @@ AESDecryptionOperation(
 dataToServer(encryptedPayloadSent())
 
 # Transit Codes
-# Generate RSA public key
-def RSAgenerate():
+# Generate client RSA public key
+def ClientRSAPublicKeygenerate():
     # Generate 2048-bit long RSA Key pair
-    RSAkey = RSA.generate(2048)
+    ClientRSAkey = RSA.generate(2048)
     # Open file to write RSA key
-    f = open('rsakey.pem','wb')
+    f = open('clientrsakey.pem','wb')
     # Write RSA key in the file
     f.write(key.export_key('PEM'))
     # Close the file
     f.close()
     # Return RSA key
-    return RSAkey
+    return ClientPublicRSAkey
 
-def encryptAESwithRSA():
-    
+# Open RSA public key generated from Server
+def ServerRSAPublicKeyreceive():
+    # Open file that contains the RSA key
+    f = open('serverrsakey.pem', 'wb')
+    # Import RSA key
+    ServerRSAkey = RSA.import_key(f.read())
+    # Return the RSA key
+    return ServerPublicRSAkey
+
+# Generate client RSA private key
+def ClientRSAPrivateKeygenerate():
+    # Generate 2048-bit long RSA Key pair
+    ClientRSAkey = RSA.generate(2048)
+    # Make RSA key generated a private key
+    ClientPrivateRSAKey = ClientRSAkey.has_private()
+    # Return RSA key
+    return ClientPrivateRSAkey

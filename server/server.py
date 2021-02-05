@@ -138,11 +138,33 @@ start(sha256('passwordpassword1'.encode('utf-8')))
 # user_login()
 
 # Transit codes
+# Generate server RSA public key
+def ServerRSAPublicKeygenerate():
+    # Generate 2048-bit long RSA Key pair
+    ServerRSAkey = RSA.generate(2048)
+    # Open file to write RSA key
+    f = open('serverrsakey.pem','wb')
+    # Write RSA key in the file
+    f.write(key.export_key('PEM'))
+    # Close the file
+    f.close()
+    # Return RSA key
+    return ServerPublicRSAkey
+
 # Open RSA public key generated from Client
-def RSAreceive():
+def ClientRSAPublicKeyreceive():
     # Open file that contains the RSA key
-    f = open('rsakey.pem', 'wb')
+    f = open('clientrsakey.pem', 'wb')
     # Import RSA key
-    RSAkey = RSA.import_key(f.read())
+    ClientRSAkey = RSA.import_key(f.read())
     # Return the RSA key
-    return RSAkey
+    return ClientPublicRSAkey
+
+# Generate client RSA private key
+def ServerRSAPrivateKeygenerate():
+    # Generate 2048-bit long RSA Key pair
+    ServerRSAkey = RSA.generate(2048)
+    # Make RSA key generated a private key
+    ServerPrivateRSAKey = ServerRSAkey.has_private()
+    # Return RSA key
+    return ServerPrivateRSAkey
