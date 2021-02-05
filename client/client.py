@@ -335,20 +335,20 @@ def ClientRSAPublicKeygenerate():
 
 # Open RSA public key generated from Server
 def ServerRSAPublicKeyreceive():
-    # Enabling the client socket to send information to the server
+    # Enabling the client socket to receive information to the server
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as clientSocket:
         # Enabling the client socket to contact the server using defined address and port number
         clientSocket.connect((HOST, PORT))
-        # Sending information to the server
-        clientSocket.recv(ServerPublicRSAKey)
+        # Receiving information from the server
+        receivedServerPublicRSAKey = clientSocket.receive(ServerPublicRSAKey)
         # Closing the connection between the server and the client
         clientSocket.close()
-    # Indicating that the data has been sent to the server
-    print("Client's Public RSA key has been sent!")
+    # Indicating that the data has been received from the server
+    print("Server's Public RSA key has been received!")
     # Closing the connection between the server and the client
     clientSocket.close()
     # Return the RSA key
-    return ServerPublicRSAkey
+    return receivedServerPublicRSAKey
 
 # Generate client RSA private key
 def ClientRSAPrivateKeygenerate():
@@ -361,10 +361,10 @@ def ClientRSAPrivateKeygenerate():
 
 # Encrypting the payload with SERVER RSA public key
 def encryptPayloadWithRSA(payload):
-    # To use the value of ServerPublicRSAKey in the function
-    import ServerPublicRSAKey
+    # To use the value of receivedServerPublicRSAKey in the function
+    import receivedServerPublicRSAKey
     # Encrypt payload with server public key
-    ClientEncryptedRSApayload = payload.encrypt(ServerPublicRSAKey)
+    ClientEncryptedRSApayload = payload.encrypt(receivedServerPublicRSAKey)
     # Return encrypted payload
     return ClientEncryptedRSApayload
 
@@ -380,9 +380,9 @@ def decryptPayloadwithRSA(serverEncryptedPayload):
 # Encrypt Diffie Hellman Public Key on Client
 def encryptDiffie(clientDHPublicKey):
     # To use the value of ClientPublicRSAKey in the fucntion
-    import ServerPublicRSAKey
+    import receivedServerPublicRSAKey
     # Encrypt DH Public Key with Server RSA Public Key
-    clientEncryptedDHPublicKey = clientDHPublicKey.encrypt(ServerPublicRSAKey)
+    clientEncryptedDHPublicKey = clientDHPublicKey.encrypt(receivedServerPublicRSAKey)
     # Return Encrypted DH Public Key
     return clientEncryptedDHPublicKey
 

@@ -142,23 +142,37 @@ start(sha256('passwordpassword1'.encode('utf-8')))
 def ServerRSAPublicKeygenerate():
     # Generate 2048-bit long RSA Key pair
     ServerPublicRSAkey = RSA.generate(2048).publickey()
-    # Open file to write RSA key
-    f = open('serverrsakey.pem','wb')
-    # Write RSA key in the file
-    f.write(key.export_key('PEM'))
-    # Close the file
-    f.close()
+    # Enabling the client socket to send information to the server
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as serverSocket:
+        # Enabling the client socket to contact the client using defined address and port number
+        serverSocket.connect((HOST, PORT))
+        # Sending information to the server
+        serverSocket.sendall(ServerPublicRSAKey)
+        # Closing the connection between the server and the client
+        serverSocket.close()
+    # Indicating that the data has been sent to the server
+    print("Server's Public RSA key has been sent!")
+    # Closing the connection between the server and the client
+    serverSocket.close()
     # Return RSA key
     return ServerPublicRSAkey
 
 # Open RSA public key generated from Client
 def ClientRSAPublicKeyreceive():
-    # Open file that contains the RSA key
-    f = open('clientrsakey.pem', 'wb')
-    # Import RSA key
-    ClientRSAkey = RSA.import_key(f.read())
+    # Enabling the server socket to receive information to the client
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as serverSocket:
+        # Enabling the server socket to contact the client using defined address and port number
+        serverSocket.connect((HOST, PORT))
+        # Receiving information from the client
+        receivedClientPublicRSAKey = serverSocket.receive(ClientPublicRSAKey)
+        # Closing the connection between the server and the client
+        serverSocket.close()
+    # Indicating that the data has been received from the client
+    print("Client's Public RSA key has been received!")
+    # Closing the connection between the server and the client
+    serverSocket.close()
     # Return the RSA key
-    return ClientPublicRSAkey
+    return receivedClientPublicRSAKey
 
 # Generate server RSA private key
 def ServerRSAPrivateKeygenerate():
@@ -189,16 +203,16 @@ def decryptPayloadwithRSA(clientEncryptedPayload):
 
 # Encrypt Diffie Hellman Public Key on Server
 def encryptDiffie(serverDHPublicKey):
-    # To use the value of ClientPublicRSAKey in the fucntion
-    import ClientPublicRSAKey
+    # To use the value of receivedClientPublicRSAKey in the fucntion
+    import receivedClientPublicRSAKey
     # Encrypt DH Public Key with Server RSA Public Key
-    serverEncryptedDHPublicKey = serverDHPublicKey.encrypt(ClientPublicRSAKey)
+    serverEncryptedDHPublicKey = serverDHPublicKey.encrypt(receivedClientPublicRSAKey)
     # Return Encrypted DH Public Key
     return serverEncryptedDHPublicKey
 
 # Encrypt Diffie Hellman Public Key from Client
 def encryptDiffie(clientDHPublicKey):
-    # To use the value of ClientPublicRSAKey in the fucntion
+    # To use the value of receivedClientPublicRSAKey in the fucntion
     import ServerPrivateRSAKey
     # Encrypt DH Public Key with Server RSA Public Key
     decryptedClientDHPublicKey = clientDHPublicKey.decrypt(ServerPrivateRSAKey)
