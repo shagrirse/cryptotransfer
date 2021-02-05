@@ -16,7 +16,7 @@ from Cryptodome.Cipher import AES
 from Cryptodome.Random import get_random_bytes
 # Importing Pad and Unpad Modules to perform pad and unpad operations
 from Cryptodome.Util.Padding import pad, unpad
-#Importing RSA module to perform RSA encryption
+# Importing RSA module to perform RSA encryption
 from Cryptodome.PublicKey import RSA
 # Importing HMAC Module to perform HMAC operations
 import hmac
@@ -312,10 +312,6 @@ AESDecryptionOperation(
 
 # Sending day_end.csv file to server
 dataToServer(encryptedPayloadSent())
-
-# ---- Arbiter codes ----
-#Generate RSA key
-RSAkey = RSA.generate(2048)
 
 # Transit Codes
 # Generate RSA public key
