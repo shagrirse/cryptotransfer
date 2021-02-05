@@ -10,8 +10,8 @@ import socket
 import random
 # Importing Hashlib Module for hashing purposes
 import hashlib
-# Importing AES Module to perform AES mode of operations
-from Cryptodome.Cipher import AES
+# Importing AES and RSA ciphers Module to perform AES and RSA mode of operations
+from Cryptodome.Cipher import AES, PKCS1_OAEP
 # Importing get_random_bytes to get random bytes suitable for cryptographic use
 from Cryptodome.Random import get_random_bytes
 # Importing Pad and Unpad Modules to perform pad and unpad operations
@@ -341,9 +341,10 @@ def receiveServerRSAPublicKey():
 def encryptPayloadWithRSA(clientEncryptedPayload):
     # Getting the server RSA public key
     serverRSAPublicKey = sessionServerRSAPublicKey
+    # Instantiating RSA cipher
+    RSACipher = PKCS1_OAEP.new(serverRSAPublicKey)
     # Encrypting payload with server RSA public key
-    clientRSAEncryptedPayload = serverRSAPublicKey.encrypt(
-        clientEncryptedPayload)
+    clientRSAEncryptedPayload = RSACipher.encrypt(clientEncryptedPayload)
     # Returning RSA encrypted payload
     return clientRSAEncryptedPayload
 
@@ -352,9 +353,10 @@ def encryptPayloadWithRSA(clientEncryptedPayload):
 def decryptPayloadwithRSA(serverEncryptedPayload):
     # Getting the client RSA private key
     clientRSAPrivateKey = sessionClientRSAPrivateKey
+    # Instantiating RSA cipher
+    RSACipher = PKCS1_OAEP.new(clientRSAPrivateKey)
     # Decrypting payload with client RSA private key
-    serverDecryptedPayload = clientRSAPrivateKey.decrypt(
-        serverEncryptedPayload)
+    serverDecryptedPayload = RSACipher.decrypt(serverEncryptedPayload)
     # Returning decrypted payload
     return serverDecryptedPayload
 
@@ -363,8 +365,10 @@ def decryptPayloadwithRSA(serverEncryptedPayload):
 def encryptDiffieHellman(clientDHPublicKey):
     # Getting the server RSA public key
     serverRSAPublicKey = sessionServerRSAPublicKey
+    # Instantiating RSA cipher
+    RSACipher = PKCS1_OAEP.new(serverRSAPublicKey)
     # Encrypting client Diffle-Hellman public key with server RSA public key
-    encryptedclientDHPublicKey = serverRSAPublicKey.encrypt(clientDHPublicKey)
+    encryptedclientDHPublicKey = RSACipher.encrypt(clientDHPublicKey)
     # Returning encrypted client Diffle-Hellman public key
     return encryptedclientDHPublicKey
 
@@ -373,8 +377,10 @@ def encryptDiffieHellman(clientDHPublicKey):
 def decryptDiffieHellman(serverDHPublicKey):
     # Getting the client RSA private key
     clientRSAPrivateKey = sessionClientRSAPrivateKey
+    # Instantiating RSA cipher
+    RSACipher = PKCS1_OAEP.new(clientRSAPrivateKey)
     # Decrypting server Diffle-Hellman public key with client RSA private key
-    decryptedServerDHPublicKey = clientRSAPrivateKey.decrypt(serverDHPublicKey)
+    decryptedServerDHPublicKey = RSACipher.decrypt(serverDHPublicKey)
     # Returning decrypted client Diffle-Hellman public key
     return decryptedServerDHPublicKey
 
