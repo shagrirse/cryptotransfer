@@ -178,7 +178,7 @@ def HMACOperation():
 # A function that signs a AES Encrypted Data
 def digitalSignatureOperation():
     # Generating the key pair for client
-    clientRSAKeyPair = RSA.generate(2048)
+    clientRSAKeyPair = RSA.generate(4096)
     # Extracting client public key from the generated key pair
     clientPublicKey = clientRSAKeyPair.publickey()
     # AES Encrypted Data
@@ -297,8 +297,8 @@ def AESDecryptionOperation(encryptedDataReceived, HMACReceived, serverDigest, se
 # Transit Codes
 # A function that generates client RSA key pair
 def generateClientRSAKeyPair():
-    # Generate 2048-bit long client RSA Key pair
-    clientRSAKeyPair = RSA.generate(2048)
+    # Generate 4096-bit long client RSA Key pair
+    clientRSAKeyPair = RSA.generate(4096)
     # Extracting client RSA public key
     clientRSAPublicKey = clientRSAKeyPair.publickey().export_key()
 
@@ -397,7 +397,7 @@ sessionServerRSAPublicKey = receiveServerRSAPublicKey()
 serverDHPublicKey = decryptDiffieHellman(gettingDHServerPublicKey())
 
 # Sending client public key to server to perform Diffle-Hellman Key Exchange
-clientDHPublicKeyToServer(encryptDiffieHellman(diffieHellmanKeyExchange))
+clientDHPublicKeyToServer(encryptDiffieHellman(diffieHellmanKeyExchange()))
 
 # Receving menu.txt from server
 dataReceived = encryptedPayloadReceived(
