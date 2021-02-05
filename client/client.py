@@ -159,7 +159,7 @@ def AESOperation():
             pad(unencryptedData, AES.block_size))
         # Appending AES Nonce at the end of the encrypted data
         AESEncryptedData = AESEncryptedData + AESNonce
-        # Returning ASES Encrypted Data in bytes
+        # Returning AES Encrypted Data in bytes
         return AESEncryptedData
 
 
