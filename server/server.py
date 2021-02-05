@@ -210,7 +210,7 @@ def encryptDiffie(serverDHPublicKey):
     # Return Encrypted DH Public Key
     return serverEncryptedDHPublicKey
 
-# Encrypt Diffie Hellman Public Key from Client
+# Decrypt Diffie Hellman Public Key from Client
 def encryptDiffie(clientDHPublicKey):
     # To use the value of receivedClientPublicRSAKey in the fucntion
     import ServerPrivateRSAKey
