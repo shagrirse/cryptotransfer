@@ -105,7 +105,7 @@ def generateServerRSAKeyPair(conn):
     # Sending information to the server
     send(serverRSAPublicKey, conn)
     # Indicating that the data has been sent to the server
-    print("Client's RSA public key has been sent to the server!")
+    print("Server's RSA public key has been sent to the client!")
 
     # Returning client RSA private key
     return serverRSAKeyPair
@@ -150,7 +150,7 @@ def handler(conn, addr, passwd):
     sessionClientRSAPublicKey = ClientRSAPublicKeyreceive(conn)
 
     send(encryptDiffie(diffieHellmanKeyExchange(), sessionClientRSAPublicKey), conn)
-    clientDHPublicKey = decryptDiffieHellman(receive_data(conn))
+    clientDHPublicKey = decryptDiffieHellman(receive_data(conn), sessionServerRSAPrivateKey)
     print(clientDHPublicKey)
     # while True:
     #     try:

@@ -37,11 +37,14 @@ normalText = "\x1b[0;37;40m"
 HOST = "127.0.0.1"
 # The port used by the server
 PORT = 8888
+ADDRESS = (HOST,PORT)
 # GET_MENU command
 cmd_GET_MENU = b"GET_MENU"
 # CLOSING command
 cmd_END_DAY = b"CLOSING"
 
+clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+clientSocket.connect(ADDRESS)
 # Send function to send item to client
 def send(message, s):
     msg = pickle.dumps(message)
@@ -60,80 +63,44 @@ def receive_data(s):
 
 # A function that receives menu.txt file from server
 def dataFromServer():
-    # Enabling the client socket to receive information from the server
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as clientSocket:
-        # Enabling the client socket to contact the server using defined address and port number
-        clientSocket.connect((HOST, PORT))
-        # Sending GET_MENU command to the server
-        send(cmd_GET_MENU, clientSocket)
-        # Receiving information from the server
-        data = receive_data(clientSocket)
-        # Closing the connection between the server and the client
-        clientSocket.close()
-    # Indicating that the data has been sent to the server
-    print(f"Length of data received from server: {len(data)}")
+    # Sending GET_MENU command to the server
+    send(cmd_GET_MENU, clientSocket)
+    # Receiving information from the server
+    data = receive_data(clientSocket)
     # Closing the connection between the server and the client
     clientSocket.close()
+    # Indicating that the data has been sent to the server
+    print(f"Length of data received from server: {len(data)}")
     # Returning the value received
     return data
 
 
 # A function that sends day_end.csv file to server
 def dataToServer(dataSent):
-    # Serialising the information to be sent to the server
-    data = pickle.dumps(dataSent)
-    # Enabling the client socket to send information to the server
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as clientSocket:
-        # Enabling the client socket to contact the server using defined address and port number
-        clientSocket.connect((HOST, PORT))
-        # Sending CLOSING command to the server
-        send(cmd_END_DAY, clientSocket)
-        # Sending information to the server
-        send(data, clientSocket)
-        # Closing the connection between the server and the client
-        clientSocket.close()
+    # Sending CLOSING command to the server
+    send(cmd_END_DAY, clientSocket)
+    # Sending information to the server
+    send(dataSent, clientSocket)
     # Indicating that the data has been sent to the server
-    print(f"Length of data sent to server: {len(data)}")
-    # Closing the connection between the server and the client
-    clientSocket.close()
+    print(f"Length of data sent to server: {len(dataSent)}")
 
 
 # A function that sends client public key to server to perform Diffle-Hellman Key Exchange
 def clientDHPublicKeyToServer(clientDHPublicKey):
-    # Encoding UTF-8 to bytes
-    data = clientDHPublicKey.encode()
-    # Enabling the client socket to send information to the server
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as clientSocket:
-        # Enabling the client socket to contact the server using defined address and port number
-        clientSocket.connect((HOST, PORT))
-        # Sending information to the server
-        send(data, clientSocket)
-        # Closing the connection between the server and the client
-        clientSocket.close()
+    # Sending information to the server
+    send(clientDHPublicKey, clientSocket)
     # Indicating that the data has been sent to the server
-    print(f"Length of data sent to server: {len(data)}")
-    # Closing the connection between the server and the client
-    clientSocket.close()
+    print(f"Length of data sent to server: {len(clientDHPublicKey)}")
 
 
 # A function that receives server public key from server to perform Diffle-Hellman Key Exchange
 def gettingDHServerPublicKey():
-    # Enabling the client socket to receive information from the server
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as clientSocket:
-        # Enabling the client socket to contact the server using defined address and port number
-        clientSocket.connect((HOST, PORT))
-        # Receiving information from the server
-        data = receive_data(clientSocket)
-        # Decoding bytes to UTF-8
-        dataReceived = data.decode()
-        # Closing the connection between the server and the client
-        clientSocket.close()
+    # Receiving information from the server
+    data = receive_data(clientSocket)
     # Indicating that the data has been sent to the server
     print(f"Length of data received from server: {len(data)}")
-    # Closing the connection between the server and the client
-    clientSocket.close()
     # Returning the value received
-    return dataReceived
+    return data
 
 
 # A function that performs Diffle-Hellman Key Exchange
@@ -313,18 +280,9 @@ def generateClientRSAKeyPair():
     # Extracting client RSA public key
     clientRSAPublicKey = clientRSAKeyPair.publickey().export_key()
 
-    # Enabling the client socket to send information to the server
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as clientSocket:
-        # Enabling the client socket to contact the server using defined address and port number
-        clientSocket.connect((HOST, PORT))
-        # Sending information to the server
-        send(clientRSAPublicKey, clientSocket)
-        # Closing the connection between the server and the client
-        clientSocket.close()
+    send(clientRSAPublicKey, clientSocket)
     # Indicating that the data has been sent to the server
     print("Client's RSA public key has been sent to the server!")
-    # Closing the connection between the server and the client
-    clientSocket.close()
 
     # Returning client RSA private key
     return clientRSAKeyPair
@@ -332,18 +290,9 @@ def generateClientRSAKeyPair():
 
 # A function that receives Server RSA public key
 def receiveServerRSAPublicKey():
-    # Enabling the client socket to receive information to the server
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as clientSocket:
-        # Enabling the client socket to contact the server using defined address and port number
-        clientSocket.connect((HOST, PORT))
-        # Receiving information from the server
-        receivedServerPublicRSAKey = receive_data(clientSocket)
-        # Closing the connection between the server and the client
-        clientSocket.close()
+    receivedServerPublicRSAKey = receive_data(clientSocket)
     # Indicating that the data has been received from the server
     print("Server's RSA public key has been received from the server!")
-    # Closing the connection between the server and the client
-    clientSocket.close()
     receivedServerPublicRSAKey = RSA.import_key(receivedServerPublicRSAKey)
     # Return the server RSA public key
     return receivedServerPublicRSAKey
@@ -380,7 +329,7 @@ def encryptDiffieHellman(clientDHPublicKey):
     # Instantiating RSA cipher
     RSACipher = PKCS1_OAEP.new(serverRSAPublicKey)
     # Encrypting client Diffle-Hellman public key with server RSA public key
-    encryptedclientDHPublicKey = RSACipher.encrypt(clientDHPublicKey)
+    encryptedclientDHPublicKey = RSACipher.encrypt(str(clientDHPublicKey).encode())
     # Returning encrypted client Diffle-Hellman public key
     return encryptedclientDHPublicKey
 
@@ -400,18 +349,15 @@ try:
     # Main program
     # Getting client private key for decryption operations
     sessionClientRSAPrivateKey = generateClientRSAKeyPair()
-    print("1")
+
     # Getting server public key for encryption operations
     sessionServerRSAPublicKey = receiveServerRSAPublicKey()
-    print("2")
 
     # Getting server public key for Diffie-Hellman Key Exchange
     serverDHPublicKey = decryptDiffieHellman(gettingDHServerPublicKey())
-    print("3")
 
     # Sending client public key to server to perform Diffle-Hellman Key Exchange
     clientDHPublicKeyToServer(encryptDiffieHellman(diffieHellmanKeyExchange()))
-    print("4")
 
     # Receving menu.txt from server
     dataReceived = encryptedPayloadReceived(
@@ -426,3 +372,5 @@ try:
 except:
     import traceback
     print(traceback.format_exc())
+
+clientSocket.close()
