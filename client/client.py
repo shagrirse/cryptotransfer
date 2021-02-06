@@ -77,7 +77,7 @@ def receive_data(s):
 # A function that receives menu.txt file from server
 def dataFromServer():
     # Sending GET_MENU command to the server
-    send(cmd_GET_MENU, clientSocket)
+    send((hashlib.sha256(cmd_GET_MENU)).hexdigest(), clientSocket)
     # Receiving information from the server
     data = receive_data(clientSocket)
     # Closing the connection between the server and the client
@@ -215,7 +215,7 @@ def encryptedPayloadSent():
 # A function that extracts all the encrypted data from a data class called serverEncryptedPayload
 def encryptedPayloadReceived(serverEncryptedPayload):
     # Instantiating the serverEncryptedPayload class to serverPayload variable
-    serverPayload = serverEncryptedPayload()
+    serverPayload = serverEncryptedPayload
     # Encrypted data from server
     encryptedDataReceived = serverPayload.encryptedFile
     # HMAC from server
@@ -278,7 +278,7 @@ def AESDecryptionOperation(encryptedDataReceived, HMACReceived, serverDigest, se
         # AES block size is 128 bits or 16 bytes
         AESUnencryptedData = unpad(AESCipher.decrypt(
             AESEncryptedData), AES.block_size)
-        with open("menu.csv", "wb") as f:
+        with open("menu_today.txt", "wb") as f:
             # Writing menu content received from server to menu.csv file
             f.write(AESUnencryptedData)
     # If the HMAC verification is not successful, the codes below will execute
