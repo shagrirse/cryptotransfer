@@ -129,7 +129,7 @@ def decryptDiffieHellman(serverDHPublicKey, serverRSAPrivateKey):
     # Instantiating RSA cipher
     RSACipher = PKCS1_OAEP.new(serverRSAPrivateKey)
     # Decrypting server Diffle-Hellman public key with client RSA private key
-    decryptedServerDHPublicKey = RSACipher.decrypt(serverDHPublicKey)
+    decryptedServerDHPublicKey = (RSACipher.decrypt(serverDHPublicKey))
     # Returning decrypted client Diffle-Hellman public key
     return decryptedServerDHPublicKey
 
@@ -157,9 +157,10 @@ def digitalSignatureVerifier(clientDigest, clientPublicKey, clientSignature):
 # A function that performs Diffle-Hellman Key Exchange Calculations
 def diffieHellmanKeyExchangeCalculations(clientDHPublicKey):
     # Generating session key
-    sessionKey = pyDH.DiffieHellman().gen_shared_key(clientDHPublicKey)
+    print(clientDHPublicKey)
+    sessionKey = pyDH.DiffieHellman(5).gen_shared_key(clientDHPublicKey)
     # Hashing the session key to be a AES 256-bit session key
-    AESSessionKey = sha256(sessionKey.encode()).hexdigest()
+    AESSessionKey = sha256(sessionKey.encode()).digest()
     # Returning the value of AES Session Key
     return AESSessionKey
 
@@ -177,47 +178,6 @@ def HMACVerifier(HMACReceived, encryptedDataReceived, clientDHPublicKey):
     # If the HMAC generated does not match to the value of HMAC received, the function will return False
     else:
         return False
-
-# A function that generates a HMAC-SHA512 of a file
-def HMACOperation(clientDHPublicKey):
-    # HMAC key is the same as the AES session key
-    HMACKey = diffieHellmanKeyExchangeCalculations(clientDHPublicKey)
-    # AES Encrypted Data
-    data = AESEncryptTransmission(clientDHPublicKey)
-    # Instantiating HMAC object and generating HMAC using SHA-512 hashing algorithm
-    HMAC = hmac.new(HMACKey, data, digestmod="sha512")
-    # Returning a HMAC-SHA512 in bytes
-    return HMAC
-
-# AES Operation for files sent over the internet
-def AESEncryptTransmission(clientDHPublicKey):
-    with open("menu_today.txt", "rb") as file:
-        rawData = file.read()
-        
-        nonce = get_random_bytes(12)
-        cipher = AES.new(diffieHellmanKeyExchangeCalculations(clientDHPublicKey), AES.MODE_CTR, nonce = nonce)  # new AES cipher using key generated
-        cipher_text_bytes = cipher.encrypt(pad(rawData, AES.block_size)) # encrypt data
-        # Append the nonce to the back of the ciphertext
-        cipher_text_bytes = cipher_text_bytes + nonce
-        file.close()
-        return cipher_text_bytes
-
-# A function that signs a AES Encrypted Data
-def digitalSignatureOperation(clientDHPublicKey):
-    
-    clientRSAKeyPair = RSA.generate(4096)
-    
-    clientPublicKey = clientRSAKeyPair.publickey()
-    # AES Encrypted Data
-    data = AESEncryptTransmission(clientDHPublicKey)
-    
-    digest = sha512(data.encode())
-    
-    signer = pkcs1_15.new(clientRSAKeyPair)
-    signature = signer.sign(digest)
-    
-    return digest, clientPublicKey, signature
-
 
 # A function that extracts all the encrypted data from a data class called serverEncryptedPayload
 def encryptedPayloadReceived(clientEncryptedPayload):
@@ -238,8 +198,8 @@ def encryptedPayloadReceived(clientEncryptedPayload):
 
 # Hash check for message sent from client to server
 def hashcheck(conn, intendedMessage, addr):
-    clientMessage = (receive_data(conn)).decode()
-    if not (clientMessage == sha256(intendedMessage).hexdigest()):
+    clientMessage = (receive_data(conn))
+    if not (clientMessage == sha256(intendedMessage.encode()).hexdigest()):
         print(f"The message from the client is invalid or has been tampered with. Closing connection from client {addr[0]}:{addr[1]}...")
         conn.close()
         return False
@@ -253,23 +213,59 @@ class clientEncryptedPayload:
         self.clientPublicKey = b""
         self.digest = ""
 
-def encryptPayload():
-    payload = clientEncryptedPayload()
-    
 # A function that stores all the encrypted data to a data class called clientEncryptedPayload
 def encryptedPayloadSent(clientDHPublicKey):
+    # AES Operation for files sent over the internet
+    def AESEncryptTransmission():
+        with open("menu_today.txt", "rb") as file:
+            rawData = file.read()
+            
+            nonce = get_random_bytes(12)
+            cipher = AES.new(diffieHellmanKeyExchangeCalculations(clientDHPublicKey), AES.MODE_CTR, nonce = nonce)  # new AES cipher using key generated
+            cipher_text_bytes = cipher.encrypt(pad(rawData, AES.block_size)) # encrypt data
+            # Append the nonce to the back of the ciphertext
+            cipher_text_bytes = cipher_text_bytes + nonce
+            file.close()
+            return cipher_text_bytes
+        
+    # A function that generates a HMAC-SHA512 of a file
+    def HMACOperation():
+        # HMAC key is the same as the AES session key
+        HMACKey = diffieHellmanKeyExchangeCalculations(clientDHPublicKey)
+        # AES Encrypted Data
+        data = AESEncryptTransmission(clientDHPublicKey)
+        # Instantiating HMAC object and generating HMAC using SHA-512 hashing algorithm
+        HMAC = hmac.new(HMACKey, data, digestmod="sha512")
+        # Returning a HMAC-SHA512 in bytes
+        return HMAC
+    
+    # A function that signs a AES Encrypted Data
+    def digitalSignatureOperation():
+        
+        clientRSAKeyPair = RSA.generate(4096)
+        
+        clientPublicKey = clientRSAKeyPair.publickey()
+        # AES Encrypted Data
+        data = AESEncryptTransmission(clientDHPublicKey)
+        
+        digest = sha512(data.encode())
+        
+        signer = pkcs1_15.new(clientRSAKeyPair)
+        signature = signer.sign(digest)
+        
+        return digest, clientPublicKey, signature
     # Instantiating the clientEncryptedPayload class to payload variable
     payload = clientEncryptedPayload()
     # Assigning the value returned by AESOperation function to the class
-    payload.encryptedFile = AESEncryptTransmission(clientDHPublicKey)
+    payload.encryptedFile = AESEncryptTransmission()
     # Assigning the value returned by HMACOperation function to the class
     payload.HMAC = HMACOperation()
     # Assigning the value returned by digitalSignatureOperation function to the class
-    payload.digitalSignature = digitalSignatureOperation(clientDHPublicKey)[2]
+    payload.digitalSignature = digitalSignatureOperation()[2]
     # Assigning the value returned by digitalSignatureOperation function to the class
-    payload.clientPublicKey = digitalSignatureOperation(clientDHPublicKey)[1]
+    payload.clientPublicKey = digitalSignatureOperation()[1]
     # Assigning the value returned by digitalSignatureOperation function to the class
-    payload.digest = digitalSignatureOperation(clientDHPublicKey)[0]
+    payload.digest = digitalSignatureOperation()[0]
     # Returning the payload encrypted data to be sent to the server
     return payload
 
@@ -285,12 +281,11 @@ def handler(conn, addr, passwd):
     send(encryptDiffie(diffieHellmanKeyExchange(), sessionClientRSAPublicKey), conn)
     print(f"Diffie Hellman key has been generated and sent to the client (Client {addr[0]}:{addr[1]})\n")
     # Receive client's public DH key and decrypt it with server's private RSA key
-    clientDHPublicKey = decryptDiffieHellman(receive_data(conn), sessionServerRSAPrivateKey)
+    clientDHPublicKey = int((decryptDiffieHellman(receive_data(conn), sessionServerRSAPrivateKey)).decode())
     print(f"Client's ({addr[0]}:{addr[1]}) Diffie Hellman public key has been received!\n")
     # Receive data from client, CMD_GETMENU
-    if hashcheck(conn, cmd_GET_MENU, addr):
-        with open("menu_today.txt", "rb") as file:
-            
+    if hashcheck(conn, cmd_GET_MENU, addr): encryptedPayloadSent(clientDHPublicKey)
+    print(f"Client's ({addr[0]}:{addr[1]}) Menu of the day command has been received and its integrity verified. Sending encrypted menu to client!\n")
     # clientMessage = encryptedPayloadReceived(decryptPayloadwithRSA(receive_data(conn), sessionServerRSAPrivateKey))
     # Send menu.txt to client
     # while True:
