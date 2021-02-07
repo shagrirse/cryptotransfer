@@ -76,7 +76,7 @@ def receive_data(s):
 
 # A function that receives menu.txt file from server
 def dataFromServer():
-    # Sending GET_MENU command to the server
+    # Sending the hashed GET_MENU command to the server
     send((hashlib.sha256(cmd_GET_MENU)).hexdigest(), clientSocket)
     # Receiving information from the server
     data = receive_data(clientSocket)
