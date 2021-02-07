@@ -128,9 +128,9 @@ def diffieHellmanKeyExchange():
 # A function that performs Diffle-Hellman Key Exchange Calculations
 def diffieHellmanKeyExchangeCalculations(serverDHPublicKey):
     # Generating session key
-    sessionKey = pyDH.DiffieHellman().gen_shared_key(serverDHPublicKey)
+    sessionKey = pyDH.DiffieHellman(5).gen_shared_key(serverDHPublicKey)
     # Hashing the session key to be a AES 256-bit session key
-    AESSessionKey = hashlib.sha256(sessionKey.encode()).hexdigest()
+    AESSessionKey = hashlib.sha256(sessionKey.encode()).digest()
     # Returning the value of AES Session Key
     return AESSessionKey
 
@@ -169,6 +169,8 @@ def HMACOperation():
 
 # A function that signs a AES Encrypted Data
 def digitalSignatureOperation():
+    # Import SHA512 from Cryptodome hash
+    from Cryptodome.Hash import SHA512
     # Generating the key pair for client
     clientRSAKeyPair = RSA.generate(4096)
     # Extracting client public key from the generated key pair
@@ -176,7 +178,7 @@ def digitalSignatureOperation():
     # AES Encrypted Data
     data = AESOperation()
     # Generating SHA-512 digest of the AES encrypted data
-    digest = hashlib.sha512(data.encode())
+    digest = SHA512(data.encode())
     # Signing the SHA-512 digest of the AES encrypted data with the private key of the RSA key pair
     signer = pkcs1_15.new(clientRSAKeyPair)
     signature = signer.sign(digest)
@@ -239,7 +241,7 @@ def HMACVerifier(HMACReceived, encryptedDataReceived):
     # Instantiating HMAC object and generating HMAC using SHA-512 hashing algorithm
     HMAC = hmac.new(HMACKey, data, digestmod="sha512")
     # If the HMAC generated matches to the value of HMAC received, the function will return True
-    if HMAC == HMACReceived:
+    if HMAC.hexdigest() == HMACReceived:
         return True
     # If the HMAC generated does not match to the value of HMAC received, the function will return False
     else:

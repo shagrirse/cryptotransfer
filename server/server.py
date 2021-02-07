@@ -30,7 +30,6 @@ import pickle
 import pyDH
 # Importing HMAC Module to perform HMAC operations
 import hmac
-
 ADDRESS = ("127.0.0.1", 8888) # Store server IP and port number in the 'ADDRESS' variable
 DC_MSG = "!DISCONNECT FROM SERVER!" # Disconnect message sent from client to server to drop session
 cmd_GET_MENU = "GET_MENU"
@@ -95,7 +94,7 @@ def generateServerRSAKeyPair(conn):
     serverRSAPublicKey = serverRSAKeyPair.publickey().export_key()
     # Sending information to the server
     send(serverRSAPublicKey, conn)
-
+    loop = True
     # Returning client RSA private key
     return serverRSAKeyPair
 
@@ -157,7 +156,6 @@ def digitalSignatureVerifier(clientDigest, clientPublicKey, clientSignature):
 # A function that performs Diffle-Hellman Key Exchange Calculations
 def diffieHellmanKeyExchangeCalculations(clientDHPublicKey):
     # Generating session key
-    print(clientDHPublicKey)
     sessionKey = pyDH.DiffieHellman(5).gen_shared_key(clientDHPublicKey)
     # Hashing the session key to be a AES 256-bit session key
     AESSessionKey = sha256(sessionKey.encode()).digest()
@@ -227,45 +225,47 @@ def encryptedPayloadSent(clientDHPublicKey):
             cipher_text_bytes = cipher_text_bytes + nonce
             file.close()
             return cipher_text_bytes
-        
+
+    data = AESEncryptTransmission()
+
     # A function that generates a HMAC-SHA512 of a file
     def HMACOperation():
         # HMAC key is the same as the AES session key
         HMACKey = diffieHellmanKeyExchangeCalculations(clientDHPublicKey)
-        # AES Encrypted Data
-        data = AESEncryptTransmission(clientDHPublicKey)
         # Instantiating HMAC object and generating HMAC using SHA-512 hashing algorithm
         HMAC = hmac.new(HMACKey, data, digestmod="sha512")
         # Returning a HMAC-SHA512 in bytes
-        return HMAC
+        return HMAC.hexdigest()
     
     # A function that signs a AES Encrypted Data
     def digitalSignatureOperation():
-        
-        clientRSAKeyPair = RSA.generate(4096)
-        
-        clientPublicKey = clientRSAKeyPair.publickey()
-        # AES Encrypted Data
-        data = AESEncryptTransmission(clientDHPublicKey)
-        
-        digest = sha512(data.encode())
-        
-        signer = pkcs1_15.new(clientRSAKeyPair)
+        # Import SHA512 from Cryptodome hash
+        from Cryptodome.Hash import SHA512
+        # Generating the key pair for client
+        serverRSAKeyPair = RSA.generate(4096)
+        # Extracting client public key from the generated key pair
+        serverPublicKey = serverRSAKeyPair.publickey()
+        # Generating SHA-512 digest of the AES encrypted data
+        digest = SHA512.new(data=data)
+        # Signing the SHA-512 digest of the AES encrypted data with the private key of the RSA key pair
+        signer = pkcs1_15.new(serverRSAKeyPair)
         signature = signer.sign(digest)
-        
-        return digest, clientPublicKey, signature
+        # Returning the digest, client public key and digital signature of a AES Encrypted Data in bytes
+        return digest, serverPublicKey, signature
+
     # Instantiating the clientEncryptedPayload class to payload variable
     payload = clientEncryptedPayload()
     # Assigning the value returned by AESOperation function to the class
-    payload.encryptedFile = AESEncryptTransmission()
+    payload.encryptedFile = data
     # Assigning the value returned by HMACOperation function to the class
     payload.HMAC = HMACOperation()
+    digitalSignature = digitalSignatureOperation()
     # Assigning the value returned by digitalSignatureOperation function to the class
-    payload.digitalSignature = digitalSignatureOperation()[2]
+    payload.digitalSignature = digitalSignature[2]
     # Assigning the value returned by digitalSignatureOperation function to the class
-    payload.clientPublicKey = digitalSignatureOperation()[1]
+    payload.clientPublicKey = (digitalSignature[1]).export_key()
     # Assigning the value returned by digitalSignatureOperation function to the class
-    payload.digest = digitalSignatureOperation()[0]
+    payload.digest = digitalSignature[0]
     # Returning the payload encrypted data to be sent to the server
     return payload
 
@@ -284,7 +284,10 @@ def handler(conn, addr, passwd):
     clientDHPublicKey = int((decryptDiffieHellman(receive_data(conn), sessionServerRSAPrivateKey)).decode())
     print(f"Client's ({addr[0]}:{addr[1]}) Diffie Hellman public key has been received!\n")
     # Receive data from client, CMD_GETMENU
-    if hashcheck(conn, cmd_GET_MENU, addr): encryptedPayloadSent(clientDHPublicKey)
+    if hashcheck(conn, cmd_GET_MENU, addr): 
+        # Send menuPayload with 'clientRSAPublicKey', but it is actually server's generated public key. Same attribute type to make them recognizable in each other's program
+        menuPayload = encryptedPayloadSent(clientDHPublicKey)
+        print(menuPayload.clientPublicKey)
     print(f"Client's ({addr[0]}:{addr[1]}) Menu of the day command has been received and its integrity verified. Sending encrypted menu to client!\n")
     # clientMessage = encryptedPayloadReceived(decryptPayloadwithRSA(receive_data(conn), sessionServerRSAPrivateKey))
     # Send menu.txt to client
