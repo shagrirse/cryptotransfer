@@ -10,14 +10,12 @@ import socket
 import random
 # Importing Hashlib Module for hashing purposes
 import hashlib
-# Importing AES Module to perform AES mode of operations
-from Cryptodome.Cipher import AES
+# Importing AES and RSA ciphers Module to perform AES and RSA mode of operations
+from Cryptodome.Cipher import AES, PKCS1_OAEP
 # Importing get_random_bytes to get random bytes suitable for cryptographic use
 from Cryptodome.Random import get_random_bytes
 # Importing Pad and Unpad Modules to perform pad and unpad operations
 from Cryptodome.Util.Padding import pad, unpad
-# Importing RSA module to perform RSA encryption
-from Cryptodome.PublicKey import RSA
 # Importing HMAC Module to perform HMAC operations
 import hmac
 # Importing base64 Module to perform base64 encoding or base64 decoding operations
@@ -114,7 +112,7 @@ def gettingDHServerPublicKey():
         # Enabling the client socket to contact the server using defined address and port number
         clientSocket.connect((HOST, PORT))
         # Receiving information from the server
-        data = clientSocket.recv(1024)
+        data = clientSocket.recv(2048)
         # Decoding bytes to UTF-8
         dataReceived = data.decode()
         # Closing the connection between the server and the client
@@ -161,7 +159,7 @@ def AESOperation():
             pad(unencryptedData, AES.block_size))
         # Appending AES Nonce at the end of the encrypted data
         AESEncryptedData = AESEncryptedData + AESNonce
-        # Returning ASES Encrypted Data in bytes
+        # Returning AES Encrypted Data in bytes
         return AESEncryptedData
 
 
@@ -180,7 +178,7 @@ def HMACOperation():
 # A function that signs a AES Encrypted Data
 def digitalSignatureOperation():
     # Generating the key pair for client
-    clientRSAKeyPair = RSA.generate(2048)
+    clientRSAKeyPair = RSA.generate(4096)
     # Extracting client public key from the generated key pair
     clientPublicKey = clientRSAKeyPair.publickey()
     # AES Encrypted Data
@@ -296,101 +294,118 @@ def AESDecryptionOperation(encryptedDataReceived, HMACReceived, serverDigest, se
         print(f"{redHighlight}Warning!{normalText} File content might be modified. Decryption operation will not execute.")
 
 
+# Transit Codes
+# A function that generates client RSA key pair
+def generateClientRSAKeyPair():
+    # Generate 4096-bit long client RSA Key pair
+    clientRSAKeyPair = RSA.generate(4096)
+    # Extracting client RSA public key
+    clientRSAPublicKey = clientRSAKeyPair.publickey().export_key()
+
+    # Enabling the client socket to send information to the server
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as clientSocket:
+        # Enabling the client socket to contact the server using defined address and port number
+        clientSocket.connect((HOST, PORT))
+        # Sending information to the server
+        clientSocket.sendall(8192)
+        # Closing the connection between the server and the client
+        clientSocket.close()
+    # Indicating that the data has been sent to the server
+    print("Client's RSA public key has been sent to the server!")
+    # Closing the connection between the server and the client
+    clientSocket.close()
+
+    # Returning client RSA private key
+    return clientRSAKeyPair
+
+
+# A function that receives Server RSA public key
+def receiveServerRSAPublicKey():
+    # Enabling the client socket to receive information to the server
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as clientSocket:
+        # Enabling the client socket to contact the server using defined address and port number
+        clientSocket.connect((HOST, PORT))
+        # Receiving information from the server
+        receivedServerPublicRSAKey = clientSocket.recv(8192)
+        # Closing the connection between the server and the client
+        clientSocket.close()
+    # Indicating that the data has been received from the server
+    print("Server's RSA public key has been received from the server!")
+    # Closing the connection between the server and the client
+    clientSocket.close()
+    receivedServerPublicRSAKey = RSA.import_key(receivedServerPublicRSAKey)
+    # Return the server RSA public key
+    return receivedServerPublicRSAKey
+
+
+# A function that encrypts the client encrypted payload with server RSA public key
+def encryptPayloadWithRSA(clientEncryptedPayload):
+    # Getting the server RSA public key
+    serverRSAPublicKey = sessionServerRSAPublicKey
+    # Instantiating RSA cipher
+    RSACipher = PKCS1_OAEP.new(serverRSAPublicKey)
+    # Encrypting payload with server RSA public key
+    clientRSAEncryptedPayload = RSACipher.encrypt(clientEncryptedPayload)
+    # Returning RSA encrypted payload
+    return clientRSAEncryptedPayload
+
+
+# A function that decrypts the server encrypted payload received from server with client RSA private key
+def decryptPayloadwithRSA(serverEncryptedPayload):
+    # Getting the client RSA private key
+    clientRSAPrivateKey = sessionClientRSAPrivateKey
+    # Instantiating RSA cipher
+    RSACipher = PKCS1_OAEP.new(clientRSAPrivateKey)
+    # Decrypting payload with client RSA private key
+    serverDecryptedPayload = RSACipher.decrypt(serverEncryptedPayload)
+    # Returning decrypted payload
+    return serverDecryptedPayload
+
+
+# A function that encrypts client Diffle-Hellman public key
+def encryptDiffieHellman(clientDHPublicKey):
+    # Getting the server RSA public key
+    serverRSAPublicKey = sessionServerRSAPublicKey
+    # Instantiating RSA cipher
+    RSACipher = PKCS1_OAEP.new(serverRSAPublicKey)
+    # Encrypting client Diffle-Hellman public key with server RSA public key
+    encryptedclientDHPublicKey = RSACipher.encrypt(clientDHPublicKey)
+    # Returning encrypted client Diffle-Hellman public key
+    return encryptedclientDHPublicKey
+
+
+# A function that decrypts server Diffie-Hellman public key
+def decryptDiffieHellman(serverDHPublicKey):
+    # Getting the client RSA private key
+    clientRSAPrivateKey = sessionClientRSAPrivateKey
+    # Instantiating RSA cipher
+    RSACipher = PKCS1_OAEP.new(clientRSAPrivateKey)
+    # Decrypting server Diffle-Hellman public key with client RSA private key
+    decryptedServerDHPublicKey = RSACipher.decrypt(serverDHPublicKey)
+    # Returning decrypted client Diffle-Hellman public key
+    return decryptedServerDHPublicKey
+
+
 # Main program
+# Getting client private key for decryption operations
+sessionClientRSAPrivateKey = generateClientRSAKeyPair()
+
+# Getting server public key for encryption operations
+sessionServerRSAPublicKey = receiveServerRSAPublicKey()
+
 # Getting server public key for Diffie-Hellman Key Exchange
-serverDHPublicKey = gettingDHServerPublicKey()
+serverDHPublicKey = decryptDiffieHellman(gettingDHServerPublicKey())
 
 # Sending client public key to server to perform Diffle-Hellman Key Exchange
-clientDHPublicKeyToServer(diffieHellmanKeyExchange())
+clientDHPublicKeyToServer(encryptDiffieHellman(diffieHellmanKeyExchange()))
 
 # Receving menu.txt from server
-dataReceived = encryptedPayloadReceived(dataFromServer())
+dataReceived = encryptedPayloadReceived(
+    decryptPayloadwithRSA(dataFromServer()))
 
 # Decrypting encrypted menu.txt from server
 AESDecryptionOperation(
     dataReceived[0], dataReceived[1], dataReceived[2], dataReceived[3], dataReceived[4])
 
 # Sending day_end.csv file to server
-dataToServer(encryptedPayloadSent())
-
-# Transit Codes
-# Generate client RSA public key
-def ClientRSAPublicKeygenerate():
-    # Generate 2048-bit long RSA Key pair
-    ClientPublicRSAKey = RSA.generate(2048).publickey()
-    # Enabling the client socket to send information to the server
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as clientSocket:
-        # Enabling the client socket to contact the server using defined address and port number
-        clientSocket.connect((HOST, PORT))
-        # Sending information to the server
-        clientSocket.sendall(ClientPublicRSAKey)
-        # Closing the connection between the server and the client
-        clientSocket.close()
-    # Indicating that the data has been sent to the server
-    print("Client's Public RSA key has been sent!")
-    # Closing the connection between the server and the client
-    clientSocket.close()
-    # Return RSA key
-    return ClientPublicRSAkey
-
-# Open RSA public key generated from Server
-def ServerRSAPublicKeyreceive():
-    # Enabling the client socket to receive information to the server
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as clientSocket:
-        # Enabling the client socket to contact the server using defined address and port number
-        clientSocket.connect((HOST, PORT))
-        # Receiving information from the server
-        receivedServerPublicRSAKey = clientSocket.receive(ServerPublicRSAKey)
-        # Closing the connection between the server and the client
-        clientSocket.close()
-    # Indicating that the data has been received from the server
-    print("Server's Public RSA key has been received!")
-    # Closing the connection between the server and the client
-    clientSocket.close()
-    # Return the RSA key
-    return receivedServerPublicRSAKey
-
-# Generate client RSA private key
-def ClientRSAPrivateKeygenerate():
-    # Generate 2048-bit long RSA Key pair
-    ClientRSAkey = RSA.generate(2048)
-    # Make RSA key generated a private key
-    ClientPrivateRSAKey = ClientRSAkey.has_private()
-    # Return RSA key
-    return ClientPrivateRSAkey
-
-# Encrypting the payload with SERVER RSA public key
-def encryptPayloadWithRSA(payload):
-    # To use the value of receivedServerPublicRSAKey in the function
-    import receivedServerPublicRSAKey
-    # Encrypt payload with server public key
-    ClientEncryptedRSApayload = payload.encrypt(receivedServerPublicRSAKey)
-    # Return encrypted payload
-    return ClientEncryptedRSApayload
-
-# Decrypting the payload received from server with Client RSA private key
-def decryptPayloadwithRSA(serverEncryptedPayload):
-    # To use the value of ClientPrivateRSAKey in the function
-    import ClientPrivateRSAKey
-    # Decrypt payload with client private key
-    serverDecryptedPayload = serverEncryptedPayload.decrypt(ClientPrivateRSAKey)
-    # Return decrypted payload
-    return serverDecryptedPayload
-
-# Encrypt Diffie Hellman Public Key on Client
-def encryptDiffie(clientDHPublicKey):
-    # To use the value of ClientPublicRSAKey in the fucntion
-    import receivedServerPublicRSAKey
-    # Encrypt DH Public Key with Server RSA Public Key
-    clientEncryptedDHPublicKey = clientDHPublicKey.encrypt(receivedServerPublicRSAKey)
-    # Return Encrypted DH Public Key
-    return clientEncryptedDHPublicKey
-
-# Decrypt Diffie Hellman Public Key from Server
-def decryptDiffie(serverDHPublicKey):
-    # To use the value of ClientPublicRSAKey in the fucntion
-    import ClientPrivateRSAKey
-    # Encrypt DH Public Key with Server RSA Public Key
-    decryptedServerDHPublicKey = ServerDHPublicKey.decrypt(ClientPrivateRSAKey)
-    # Return Encrypted DH Public Key
-    return decryptedServerDHPublicKey
+dataToServer(encryptPayloadWithRSA(encryptedPayloadSent()))
