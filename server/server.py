@@ -38,10 +38,10 @@ default_menu = "server\menu_today.txt"
 default_save_base = "result-"
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server.bind(ADDRESS)
-
+DiffieHellmanKey = pyDH.DiffieHellman(5)
 def diffieHellmanKeyExchange():
     # Generating client public key
-    serverDHPublicKey = pyDH.DiffieHellman(5).gen_public_key()
+    serverDHPublicKey = DiffieHellmanKey.gen_public_key()
     # Returning the value of client public key
     return serverDHPublicKey
 
@@ -98,15 +98,6 @@ def generateServerRSAKeyPair(conn):
     # Returning client RSA private key
     return serverRSAKeyPair
 
-# Encrypting the payload with CLIENT RSA public key
-def encryptPayloadWithRSA(payload, clientPublicKey):
-    # Instantiating RSA cipher
-    RSACipher = PKCS1_OAEP.new(clientPublicKey)
-    # Encrypting payload with server RSA public key
-    payload = RSACipher.encrypt(payload)
-    # Returning RSA encrypted payload
-    return payload
-
 # Decrypting the payload received from client with Server RSA Private Key
 def decryptPayloadwithRSA(clientEncryptedPayload, serverPrivateKey):
     # Decrypt payload with server private key
@@ -147,7 +138,7 @@ def digitalSignatureVerifier(clientDigest, clientPublicKey, clientSignature):
 # A function that performs Diffle-Hellman Key Exchange Calculations
 def diffieHellmanKeyExchangeCalculations(clientDHPublicKey):
     # Generating session key
-    sessionKey = pyDH.DiffieHellman(5).gen_shared_key(clientDHPublicKey)
+    sessionKey = DiffieHellmanKey.gen_shared_key(clientDHPublicKey)
     # Hashing the session key to be a AES 256-bit session key
     AESSessionKey = sha256(sessionKey.encode()).digest()
     # Returning the value of AES Session Key
@@ -203,7 +194,7 @@ class clientEncryptedPayload:
         self.digest = ""
 
 # A function that stores all the encrypted data to a data class called clientEncryptedPayload
-def encryptedPayloadSent(clientDHPublicKey):
+def encryptedPayloadSent(clientDHPublicKey, AESSessionKey):
     # AES Operation for files sent over the internet
     # A function that encrypts the client encrypted payload with server RSA public key
 
@@ -215,6 +206,7 @@ def encryptedPayloadSent(clientDHPublicKey):
     def HMACOperation():
         # HMAC key is the same as the AES session key
         HMACKey = diffieHellmanKeyExchangeCalculations(clientDHPublicKey)
+        print(data)
         # Instantiating HMAC object and generating HMAC using SHA-512 hashing algorithm
         HMAC = hmac.new(HMACKey, data, digestmod="sha512")
         # Returning a HMAC-SHA512 in bytes
@@ -225,7 +217,7 @@ def encryptedPayloadSent(clientDHPublicKey):
         # Import SHA512 from Cryptodome hash
         from Cryptodome.Hash import SHA512
         # Generating the key pair for client
-        serverRSAKeyPair = RSA.generate(4096)
+        serverRSAKeyPair = RSA.generate(2048)
         # Extracting client public key from the generated key pair
         serverPublicKey = serverRSAKeyPair.publickey()
         # Generating SHA-512 digest of the AES encrypted data
@@ -250,27 +242,31 @@ def encryptedPayloadSent(clientDHPublicKey):
     # Assigning the value returned by digitalSignatureOperation function to the class
     payload.digest = (digitalSignature[0]).digest()
     # Returning the payload encrypted data to be sent to the server
-    return AESEncrypt(pickle.dumps(payload), diffieHellmanKeyExchangeCalculations(clientDHPublicKey))
+    return AESEncrypt(pickle.dumps(payload), AESSessionKey)
 
 def handler(conn, addr, passwd):
     now = datetime.datetime.now()
     sessionServerRSAPrivateKey = generateServerRSAKeyPair(conn)
     # Indicating that the server has generated the key and sent public key to client
+    time.sleep(2)
     print(f"Server's RSA public key has been generated and sent to the client {addr[0]}:{addr[1]}\n")
     sessionClientRSAPublicKey = ClientRSAPublicKeyreceive(conn)
     # Indicating that the data has been received from the client
     print(f"Client's Public RSA key (Client {addr[0]}:{addr[1]}) has been received!\n")
     # Send the encrypted diffie hellman key to the client, encrypted with the client's public RSA key
-    send(encryptDiffie(diffieHellmanKeyExchange(), sessionClientRSAPublicKey), conn)
+    serverDHPublicKey = encryptDiffie(diffieHellmanKeyExchange(), sessionClientRSAPublicKey)
+    send(serverDHPublicKey, conn)
     print(f"Diffie Hellman key has been generated and sent to the client (Client {addr[0]}:{addr[1]})\n")
     # Receive client's public DH key and decrypt it with server's private RSA key
-    clientDHPublicKey = int((decryptDiffieHellman(receive_data(conn), sessionServerRSAPrivateKey)).decode())
+    clientEncryptedDHPublicKey = receive_data(conn)
+    clientDHPublicKey = int((decryptDiffieHellman(clientEncryptedDHPublicKey, sessionServerRSAPrivateKey)))
+    AESSessionKey = diffieHellmanKeyExchangeCalculations(clientDHPublicKey)
     print(f"Client's ({addr[0]}:{addr[1]}) Diffie Hellman public key has been received!\n")
     # Receive data from client, CMD_GETMENU
     if hashcheck(conn, cmd_GET_MENU, addr): 
         # Send menuPayload with 'clientRSAPublicKey', but it is actually server's generated public key. Same attribute type to make them recognizable in each other's program
-        menuPayload = encryptedPayloadSent(clientDHPublicKey)
-        conn.send(menuPayload)
+        menuPayload = encryptedPayloadSent(clientDHPublicKey, AESSessionKey)
+        send(menuPayload, conn)
         # TODO: Decryption of payload using AES
     print(f"Client's ({addr[0]}:{addr[1]}) Menu of the day command has been received and its integrity verified. Sending encrypted menu to client!\n")
     # clientMessage = encryptedPayloadReceived(decryptPayloadwithRSA(receive_data(conn), sessionServerRSAPrivateKey))

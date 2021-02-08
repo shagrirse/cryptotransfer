@@ -3,7 +3,7 @@ import socket
 # Importing Random Module for generating random numbers
 import random
 # Importing Hashlib Module for hashing purposes
-import hashlib
+from hashlib import sha256, sha512
 # Importing AES and RSA ciphers Module to perform AES and RSA mode of operations
 from Cryptodome.Cipher import AES, PKCS1_OAEP
 # Importing get_random_bytes to get random bytes suitable for cryptographic use
@@ -44,7 +44,7 @@ cmd_END_DAY = b"CLOSING"
 clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 # Enabling the client socket to contact the server using defined address and port number
 clientSocket.connect(ADDRESS)
-
+DiffieHellmanKey = pyDH.DiffieHellman(5)
 
 # A function that sends information to the server
 def send(message, s):
@@ -81,14 +81,22 @@ def AESEncrypt(text, key, BLOCK_SIZE = 16):
     cipher_text_bytes = cipher_text_bytes + nonce
     return cipher_text_bytes
 
+def AESDecrypt(cipher_text_bytes, key, BLOCK_SIZE = 16):
+    cipher_text_bytes, nonce = cipher_text_bytes[:-12] , cipher_text_bytes[-12:]
+    # create a new AES cipher object with the same key and mode
+    my_cipher = AES.new(key,AES.MODE_CTR, nonce = nonce)
+    # Now decrypt the text using your new cipher
+    decrypted_text_bytes = unpad(my_cipher.decrypt(cipher_text_bytes),BLOCK_SIZE)
+    # Print the message in UTF8 (normal readable way
+    decrypted_text = decrypted_text_bytes
+    return decrypted_text
+
 # A function that receives menu.txt file from server
 def dataFromServer():
     # Sending the hashed GET_MENU command to the server
-    send((hashlib.sha256(cmd_GET_MENU)).hexdigest(), clientSocket)
+    send((sha256(cmd_GET_MENU)).hexdigest(), clientSocket)
     # Receiving information from the server
     data = receive_data(clientSocket)
-    # Closing the connection between the server and the client
-    clientSocket.close()
     # Indicating that the data has been sent to the server
     print(f"Length of data received from server: {len(data)}")
     # Returning the data received
@@ -127,7 +135,7 @@ def gettingDHServerPublicKey():
 def diffieHellmanKeyExchange():
     # Generating client public key
     # The client public key is an integer
-    clientDHPublicKey = pyDH.DiffieHellman(5).gen_public_key()
+    clientDHPublicKey = DiffieHellmanKey.gen_public_key()
     # Returning the value of client public key
     return clientDHPublicKey
 
@@ -135,31 +143,11 @@ def diffieHellmanKeyExchange():
 # A function that performs Diffle-Hellman Key Exchange Calculations
 def diffieHellmanKeyExchangeCalculations(serverDHPublicKey):
     # Generating session key
-    sessionKey = pyDH.DiffieHellman(5).gen_shared_key(serverDHPublicKey)
+    sessionKey = DiffieHellmanKey.gen_shared_key(serverDHPublicKey)
     # Hashing the session key to be a AES 256-bit session key
-    AESSessionKey = hashlib.sha256(sessionKey.encode()).digest()
+    AESSessionKey = sha256(sessionKey.encode()).digest()
     # Returning the value of AES Session Key
     return AESSessionKey
-
-
-# A function that performs AES Encryption Operation
-def AESOperation():
-    with open("day_end.csv", "rb") as f:
-        # Extracting data in bytes
-        unencryptedData = f.read()
-        # Generating AES Nonce
-        # Maximum AES Nonce size is 96 bits or 12 bytes
-        AESNonce = get_random_bytes(12)
-        # Instantiating AES cipher
-        AESCipher = AES.new(diffieHellmanKeyExchangeCalculations(
-            serverDHPublicKey), AES.MODE_CTR, nonce=AESNonce)
-        # AES block size is 128 bits or 16 bytes
-        AESEncryptedData = AESCipher.encrypt(
-            pad(unencryptedData, AES.block_size))
-        # Appending AES Nonce at the end of the encrypted data
-        AESEncryptedData = AESEncryptedData + AESNonce
-        # Returning AES Encrypted Data in bytes
-        return AESEncryptedData
 
 # A data class to store the encrypted day_end.csv, HMAC, digital signature of day_end.csv, client public key and digest
 class clientEncryptedPayload:
@@ -172,7 +160,7 @@ class clientEncryptedPayload:
 
 
 # A function that stores all the encrypted data to a data class called clientEncryptedPayload
-def encryptedPayloadSent(clientDHPublicKey):
+def encryptedPayloadSent(sessionKey):
     # AES Operation for files sent over the internet
     # A function that encrypts the client encrypted payload with server RSA public key
 
@@ -183,7 +171,7 @@ def encryptedPayloadSent(clientDHPublicKey):
     # A function that generates a HMAC-SHA512 of a file
     def HMACOperation():
         # HMAC key is the same as the AES session key
-        HMACKey = diffieHellmanKeyExchangeCalculations(clientDHPublicKey)
+        HMACKey = diffieHellmanKeyExchangeCalculations(serverDHPublicKey)
         # Instantiating HMAC object and generating HMAC using SHA-512 hashing algorithm
         HMAC = hmac.new(HMACKey, data, digestmod="sha512")
         # Returning a HMAC-SHA512 in bytes
@@ -194,7 +182,7 @@ def encryptedPayloadSent(clientDHPublicKey):
         # Import SHA512 from Cryptodome hash
         from Cryptodome.Hash import SHA512
         # Generating the key pair for client
-        clientRSAKeyPair = RSA.generate(4096)
+        clientRSAKeyPair = RSA.generate(2048)
         # Extracting client public key from the generated key pair
         clientPublicKey = clientRSAKeyPair.publickey()
         # Generating SHA-512 digest of the AES encrypted data
@@ -217,14 +205,14 @@ def encryptedPayloadSent(clientDHPublicKey):
     # Assigning the value returned by digitalSignatureOperation function to the class
     payload.clientPublicKey = (digitalSignature[1]).export_key()
     # Assigning the value returned by digitalSignatureOperation function to the class
-    payload.digest = (digitalSignature[0]).digest()
+    payload.digest = (digitalSignature[0])
     # Returning the payload encrypted data to be sent to the server
-    return AESEncrypt(pickle.dumps(payload), diffieHellmanKeyExchangeCalculations(clientDHPublicKey))
+    return AESEncrypt(pickle.dumps(payload), sessionKey)
 
 # A function that extracts all the encrypted data from a data class called serverEncryptedPayload
 def encryptedPayloadReceived(serverEncryptedPayload):
     # Instantiating the serverEncryptedPayload class to serverPayload variable
-    serverPayload = serverEncryptedPayload
+    serverPayload = clientEncryptedPayload()
     # Encrypted data from server
     encryptedDataReceived = serverPayload.encryptedFile
     # HMAC from server
@@ -232,7 +220,7 @@ def encryptedPayloadReceived(serverEncryptedPayload):
     # Server Digest
     serverDigest = serverPayload.digest
     # Server public key
-    serverPublicKey = serverPayload.serverPublicKey
+    serverPublicKey = serverPayload.clientPublicKey
     # Server digital signature
     serverSignature = serverPayload.digitalSignature
     # Returning the payload encrypted data received from the server
@@ -246,7 +234,7 @@ def HMACVerifier(HMACReceived, encryptedDataReceived):
     # AES Encrypted Data received from Server
     data = encryptedDataReceived
     # Instantiating HMAC object and generating HMAC using SHA-512 hashing algorithm
-    HMAC = hmac.new(HMACKey, data, digestmod="sha512")
+    HMAC = hmac.new(HMACKey, data.encode(), digestmod="sha512")
     # If the HMAC generated matches to the value of HMAC received, the function will return True
     if HMAC.hexdigest() == HMACReceived:
         return True
@@ -333,18 +321,6 @@ def encryptPayloadWithRSA(clientEncryptedPayload):
     return clientRSAEncryptedPayload
 
 
-# A function that decrypts the server encrypted payload received from server with client RSA private key
-def decryptPayloadwithRSA(serverEncryptedPayload):
-    # Getting the client RSA private key
-    clientRSAPrivateKey = sessionClientRSAPrivateKey
-    # Instantiating RSA cipher
-    RSACipher = PKCS1_OAEP.new(clientRSAPrivateKey)
-    # Decrypting payload with client RSA private key
-    serverDecryptedPayload = RSACipher.decrypt(serverEncryptedPayload)
-    # Returning decrypted payload
-    return serverDecryptedPayload
-
-
 # A function that encrypts client Diffle-Hellman public key
 def encryptDiffieHellman(clientDHPublicKey):
     # Getting the server RSA public key
@@ -379,21 +355,24 @@ try:
     sessionServerRSAPublicKey = receiveServerRSAPublicKey()
 
     # Getting server public key for Diffie-Hellman Key Exchange
-    serverDHPublicKey = decryptDiffieHellman(gettingDHServerPublicKey())
+    serverEncryptedDHPublicKey = gettingDHServerPublicKey()
+    serverDHPublicKey = int(decryptDiffieHellman(serverEncryptedDHPublicKey))
 
     # Sending client public key to server to perform Diffle-Hellman Key Exchange
-    clientDHPublicKeyToServer(encryptDiffieHellman(diffieHellmanKeyExchange()))
+    clientDHPublicKey = encryptDiffieHellman(diffieHellmanKeyExchange())
+    clientDHPublicKeyToServer(clientDHPublicKey)
 
+    AESSessionKey = diffieHellmanKeyExchangeCalculations(serverDHPublicKey)
     # Receving menu.txt from server
     dataReceived = encryptedPayloadReceived(
-        decryptPayloadwithRSA(dataFromServer()))
-
+        pickle.loads(AESDecrypt(dataFromServer(), AESSessionKey)))
+    # print(AESDecrypt(receive_data(clientSocket), diffieHellmanKeyExchangeCalculations(serverDHPublicKey)))
     # Decrypting encrypted menu.txt from server
     AESDecryptionOperation(
         dataReceived[0], dataReceived[1], dataReceived[2], dataReceived[3], dataReceived[4])
 
     # Sending day_end.csv file to server
-    dataToServer(encryptPayloadWithRSA(encryptedPayloadSent()))
+    dataToServer(encryptPayloadWithRSA(encryptedPayloadSent(AESSessionKey)))
 
 # For debugging use, to be removed once the code has been finalised
 except:
