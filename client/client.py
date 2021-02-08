@@ -30,7 +30,7 @@ redHighlight = "\x1b[1;37;41m"
 normalText = "\x1b[0;37;40m"
 
 # Server's hostname or IP address
-HOST = "192.168.1.221"
+HOST = "127.0.0.1"
 # The port used by the server
 PORT = 8888
 # Address that contains server's hostname or IP address and port used by the server

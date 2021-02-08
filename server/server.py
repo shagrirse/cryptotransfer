@@ -34,7 +34,7 @@ import hmac
 redHighlight = "\x1b[1;37;41m"
 # Default Font Styles
 normalText = "\x1b[0;37;40m"
-ADDRESS = ("192.168.1.221", 8888) # Store server IP and port number in the 'ADDRESS' variable
+ADDRESS = ("127.0.0.1", 8888) # Store server IP and port number in the 'ADDRESS' variable
 DC_MSG = "!DISCONNECT FROM SERVER!" # Disconnect message sent from client to server to drop session
 cmd_GET_MENU = "GET_MENU"
 cmd_END_DAY = "CLOSING"
