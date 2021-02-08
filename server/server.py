@@ -132,15 +132,6 @@ def decryptDiffieHellman(serverDHPublicKey, serverRSAPrivateKey):
     # Returning decrypted client Diffle-Hellman public key
     return decryptedServerDHPublicKey
 
-# A function that encrypts the client encrypted payload with server RSA public key
-def encryptPayloadWithRSA(serverEncryptedPayload, clientRSAKey):
-    # Instantiating RSA cipher
-    RSACipher = PKCS1_OAEP.new(clientRSAKey)
-    # Encrypting payload with server RSA public key
-    serverEncryptedPayload = RSACipher.encrypt(serverEncryptedPayload)
-    # Returning RSA encrypted payload
-    return serverEncryptedPayload
-
 # A function that verifies the signature of the data received from server
 def digitalSignatureVerifier(clientDigest, clientPublicKey, clientSignature):
     # Verifying the signature of AES Encrypted Data received from Server with the server public key of the RSA key pair
@@ -214,19 +205,11 @@ class clientEncryptedPayload:
 # A function that stores all the encrypted data to a data class called clientEncryptedPayload
 def encryptedPayloadSent(clientDHPublicKey):
     # AES Operation for files sent over the internet
-    def AESEncryptTransmission():
-        with open("menu_today.txt", "rb") as file:
-            rawData = file.read()
-            
-            nonce = get_random_bytes(12)
-            cipher = AES.new(diffieHellmanKeyExchangeCalculations(clientDHPublicKey), AES.MODE_CTR, nonce = nonce)  # new AES cipher using key generated
-            cipher_text_bytes = cipher.encrypt(pad(rawData, AES.block_size)) # encrypt data
-            # Append the nonce to the back of the ciphertext
-            cipher_text_bytes = cipher_text_bytes + nonce
-            file.close()
-            return cipher_text_bytes
+    # A function that encrypts the client encrypted payload with server RSA public key
 
-    data = AESEncryptTransmission()
+    with open("menu_today.txt", "rb") as file:
+        data = file.read()
+        file.close()
 
     # A function that generates a HMAC-SHA512 of a file
     def HMACOperation():
@@ -265,9 +248,9 @@ def encryptedPayloadSent(clientDHPublicKey):
     # Assigning the value returned by digitalSignatureOperation function to the class
     payload.clientPublicKey = (digitalSignature[1]).export_key()
     # Assigning the value returned by digitalSignatureOperation function to the class
-    payload.digest = digitalSignature[0]
+    payload.digest = (digitalSignature[0]).digest()
     # Returning the payload encrypted data to be sent to the server
-    return payload
+    return AESEncrypt(pickle.dumps(payload), diffieHellmanKeyExchangeCalculations(clientDHPublicKey))
 
 def handler(conn, addr, passwd):
     now = datetime.datetime.now()
@@ -287,7 +270,8 @@ def handler(conn, addr, passwd):
     if hashcheck(conn, cmd_GET_MENU, addr): 
         # Send menuPayload with 'clientRSAPublicKey', but it is actually server's generated public key. Same attribute type to make them recognizable in each other's program
         menuPayload = encryptedPayloadSent(clientDHPublicKey)
-        print(menuPayload.clientPublicKey)
+        conn.send(menuPayload)
+        # TODO: Decryption of payload using AES
     print(f"Client's ({addr[0]}:{addr[1]}) Menu of the day command has been received and its integrity verified. Sending encrypted menu to client!\n")
     # clientMessage = encryptedPayloadReceived(decryptPayloadwithRSA(receive_data(conn), sessionServerRSAPrivateKey))
     # Send menu.txt to client
