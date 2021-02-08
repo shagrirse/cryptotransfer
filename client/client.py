@@ -30,7 +30,7 @@ redHighlight = "\x1b[1;37;41m"
 normalText = "\x1b[0;37;40m"
 
 # Server's hostname or IP address
-HOST = "127.0.0.1"
+HOST = "192.168.1.221"
 # The port used by the server
 PORT = 8888
 # Address that contains server's hostname or IP address and port used by the server
@@ -106,7 +106,7 @@ def dataFromServer():
 # A function that sends day_end.csv file to server
 def dataToServer(dataSent):
     # Sending CLOSING command to the server
-    send(cmd_END_DAY, clientSocket)
+    send(sha256(cmd_END_DAY).hexdigest(), clientSocket)
     # Sending information to the server
     send(dataSent, clientSocket)
     # Indicating that the data has been sent to the server
@@ -151,16 +151,16 @@ def diffieHellmanKeyExchangeCalculations(serverDHPublicKey):
 
 # A data class to store the encrypted day_end.csv, HMAC, digital signature of day_end.csv, client public key and digest
 class clientEncryptedPayload:
-    def __init__(self):
-        self.encryptedFile = ""
-        self.HMAC = ""
-        self.digitalSignature = ""
-        self.clientPublicKey = b""
-        self.digest = ""
+    def __init__(self, encryptedFile, HMAC, digitalSignature, clientPublicKey, digest):
+        self.encryptedFile = encryptedFile
+        self.HMAC = HMAC
+        self.digitalSignature = digitalSignature
+        self.clientPublicKey = clientPublicKey
+        self.digest = digest
 
 
 # A function that stores all the encrypted data to a data class called clientEncryptedPayload
-def encryptedPayloadSent(sessionKey):
+def encryptedPayloadSent(AESSessionKey):
     # AES Operation for files sent over the internet
     # A function that encrypts the client encrypted payload with server RSA public key
 
@@ -191,96 +191,67 @@ def encryptedPayloadSent(sessionKey):
         signer = pkcs1_15.new(clientRSAKeyPair)
         signature = signer.sign(digest)
         # Returning the digest, client public key and digital signature of a AES Encrypted Data in bytes
-        return digest.digest(), clientRSAKeyPair, signature
+        return digest, clientPublicKey, signature
 
-    # Instantiating the clientEncryptedPayload class to payload variable
-    payload = clientEncryptedPayload()
-    # Assigning the value returned by AESOperation function to the class
-    payload.encryptedFile = data
-    # Assigning the value returned by HMACOperation function to the class
-    payload.HMAC = HMACOperation()
     digitalSignature = digitalSignatureOperation()
-    # Assigning the value returned by digitalSignatureOperation function to the class
-    payload.digitalSignature = digitalSignature[2]
-    # Assigning the value returned by digitalSignatureOperation function to the class
-    payload.clientPublicKey = (digitalSignature[1]).export_key()
-    # Assigning the value returned by digitalSignatureOperation function to the class
-    payload.digest = (digitalSignature[0])
     # Returning the payload encrypted data to be sent to the server
-    return AESEncrypt(pickle.dumps(payload), sessionKey)
+    # Instantiating the clientEncryptedPayload class to payload variable
+    payload = clientEncryptedPayload(data, HMACOperation(), digitalSignature[2], (digitalSignature[1]).export_key(), (digitalSignature[0]).digest())
+
+    return AESEncrypt(pickle.dumps(payload), AESSessionKey)
 
 # A function that extracts all the encrypted data from a data class called serverEncryptedPayload
 def encryptedPayloadReceived(serverEncryptedPayload):
     # Instantiating the serverEncryptedPayload class to serverPayload variable
-    serverPayload = clientEncryptedPayload()
-    # Encrypted data from server
-    encryptedDataReceived = serverPayload.encryptedFile
-    # HMAC from server
-    HMACReceived = serverPayload.HMAC
-    # Server Digest
-    serverDigest = serverPayload.digest
-    # Server public key
-    serverPublicKey = serverPayload.clientPublicKey
-    # Server digital signature
-    serverSignature = serverPayload.digitalSignature
+    serverPayload = clientEncryptedPayload(serverEncryptedPayload.encryptedFile, serverEncryptedPayload.HMAC, serverEncryptedPayload.digitalSignature, serverEncryptedPayload.clientPublicKey, serverEncryptedPayload.digest)
     # Returning the payload encrypted data received from the server
-    return encryptedDataReceived, HMACReceived, serverDigest, serverPublicKey, serverSignature
-
-
-# A function that verifies the HMAC of the data received from server
-def HMACVerifier(HMACReceived, encryptedDataReceived):
-    # HMAC key is the same as the AES session key
-    HMACKey = diffieHellmanKeyExchangeCalculations(serverDHPublicKey)
-    # AES Encrypted Data received from Server
-    data = encryptedDataReceived
-    # Instantiating HMAC object and generating HMAC using SHA-512 hashing algorithm
-    HMAC = hmac.new(HMACKey, data.encode(), digestmod="sha512")
-    # If the HMAC generated matches to the value of HMAC received, the function will return True
-    if HMAC.hexdigest() == HMACReceived:
-        return True
-    # If the HMAC generated does not match to the value of HMAC received, the function will return False
-    else:
-        return False
-
-
-# A function that verifies the signature of the data received from server
-def digitalSignatureVerifier(serverDigest, serverPublicKey, serverSignature):
-    # Verifying the signature of AES Encrypted Data received from Server with the server public key of the RSA key pair
-    verifier = pkcs1_15.new(serverPublicKey)
-    try:
-        # If the signaature is valid, the function will return True
-        verifier.verify(serverDigest, serverSignature)
-        return True
-    except:
-        # If the signaature is not valid, the function will return False
-        return False
-
+    return serverPayload.encryptedFile, serverPayload.HMAC, serverPayload.digest, serverPayload.clientPublicKey, serverPayload.digitalSignature
 
 # A function that performs AES Decryption Operation
-def AESDecryptionOperation(encryptedDataReceived, HMACReceived, serverDigest, serverPublicKey, serverSignature):
-    # Verifying HMAC of content received
-    HMACResult = HMACVerifier(HMACReceived, encryptedDataReceived)
-    # Verifying signature of content received
-    signatureResult = digitalSignatureVerifier(
-        serverDigest, serverPublicKey, serverSignature)
+def VerifierHMACDSIG(encryptedDataReceived, HMACReceived, serverDigest, serverPublicKey, serverSignature):
+    
+    data = encryptedDataReceived
+    # A function that verifies the HMAC of the data received from server
+    def HMACVerifier():
+        # HMAC key is the same as the AES session key
+        HMACKey = diffieHellmanKeyExchangeCalculations(serverDHPublicKey)
+        # AES Encrypted Data received from Server
+        # Instantiating HMAC object and generating HMAC using SHA-512 hashing algorithm
+        HMAC = hmac.new(HMACKey, data, digestmod="sha512")
+        # If the HMAC generated matches to the value of HMAC received, the function will return True
+        if HMAC.hexdigest() == HMACReceived:
+            return True
+        # If the HMAC generated does not match to the value of HMAC received, the function will return False
+        else:
+            return False
+
+    # A function that verifies the signature of the data received from server
+    def digitalSignatureVerifier():
+        from Cryptodome.Hash import SHA512
+        # Verifying the signature of Data received from Server with the server public key of the RSA key pair
+        verifier = pkcs1_15.new(RSA.import_key(serverPublicKey))
+        digest = SHA512.new(data=data)
+        if digest.digest() == serverDigest:
+            try:
+                # If the signaature is valid, the function will return True
+                verifier.verify(digest, serverSignature)
+                return True
+            except:
+                # If the signaature is not valid, the function will return False
+                return False
+        else: return False
+    HMACResult = HMACVerifier()
+    signatureResult = digitalSignatureVerifier()
     # If the HMAC verification and signature verification is successful, the codes below will execute
-    if HMACResult == True and signatureResult == True:
-        # Extracting AES Nonce
-        AESNonce = encryptedDataReceived[-12:]
-        # Extracting AES Encrypted Data
-        AESEncryptedData = encryptedDataReceived[:-12]
-        # Instantiating AES cipher
-        AESCipher = AES.new(diffieHellmanKeyExchangeCalculations(
-            serverDHPublicKey), AES.MODE_CTR, nonce=AESNonce)
-        # AES block size is 128 bits or 16 bytes
-        AESUnencryptedData = unpad(AESCipher.decrypt(
-            AESEncryptedData), AES.block_size)
-        with open("menu_today.txt", "wb") as f:
-            # Writing menu content received from server to menu.csv file
-            f.write(AESUnencryptedData)
+    if HMACResult and signatureResult:
+        print("The HMAC and Digital Signature of the payload is verified!")
+        with open("menu_today.txt", "w") as f:
+            f.write(encryptedDataReceived.decode())
+            f.close()
     # If the HMAC verification is not successful, the codes below will execute
     else:
-        print(f"{redHighlight}Warning!{normalText} File content might be modified. Decryption operation will not execute.")
+        print(f"{redHighlight}Warning!{normalText} File content might be modified. Connection to server is terminated. Relaunch the program to get the menu again.")
+        clientSocket.close()
 
 
 # Transit Codes
@@ -307,18 +278,6 @@ def receiveServerRSAPublicKey():
     receivedServerPublicRSAKey = RSA.import_key(receivedServerPublicRSAKey)
     # Return the server RSA public key
     return receivedServerPublicRSAKey
-
-
-# A function that encrypts the client encrypted payload with server RSA public key
-def encryptPayloadWithRSA(clientEncryptedPayload):
-    # Getting the server RSA public key
-    serverRSAPublicKey = sessionServerRSAPublicKey
-    # Instantiating RSA cipher
-    RSACipher = PKCS1_OAEP.new(serverRSAPublicKey)
-    # Encrypting payload with server RSA public key
-    clientRSAEncryptedPayload = RSACipher.encrypt(clientEncryptedPayload)
-    # Returning RSA encrypted payload
-    return clientRSAEncryptedPayload
 
 
 # A function that encrypts client Diffle-Hellman public key
@@ -368,11 +327,11 @@ try:
         pickle.loads(AESDecrypt(dataFromServer(), AESSessionKey)))
     # print(AESDecrypt(receive_data(clientSocket), diffieHellmanKeyExchangeCalculations(serverDHPublicKey)))
     # Decrypting encrypted menu.txt from server
-    AESDecryptionOperation(
+    VerifierHMACDSIG(
         dataReceived[0], dataReceived[1], dataReceived[2], dataReceived[3], dataReceived[4])
 
     # Sending day_end.csv file to server
-    dataToServer(encryptPayloadWithRSA(encryptedPayloadSent(AESSessionKey)))
+    dataToServer(encryptedPayloadSent(AESSessionKey))
 
 # For debugging use, to be removed once the code has been finalised
 except:
