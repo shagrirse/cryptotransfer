@@ -94,10 +94,9 @@ def AESEncrypt(plaintext, key, BLOCK_SIZE=16):
 # A function that performs AES Decryption Operation
 # AES block size is 128 bits or 16 bytes
 def AESDecrypt(cipher_text_bytes, key, BLOCK_SIZE=16):
-    # Extracting AES Encrypted Data
-    cipher_text_bytes = cipher_text_bytes[:-12]
+    # Extracting AES Encrypted Data, 
     # Extracting AES Nonce
-    nonce = cipher_text_bytes[-12:]
+    cipher_text_bytes, nonce = cipher_text_bytes[:-12] , cipher_text_bytes[-12:]
     # Instantiating AES cipher with the same key and mode
     cipher = AES.new(key, AES.MODE_CTR, nonce=nonce)
     # Decrypting data
@@ -218,14 +217,12 @@ def encryptedPayloadSent(AESSessionKey):
     # Returning the encrypted pickled payload and AES session key
     return AESEncrypt(pickle.dumps(payload), AESSessionKey)
 
-
 # A function that extracts all the encrypted data from a data class called serverEncryptedPayload
 def encryptedPayloadReceived(serverEncryptedPayload):
-    # Instantiating the serverEncryptedPayload class to serverPayload variable
-    serverPayload = clientEncryptedPayload(serverEncryptedPayload.encryptedFile, serverEncryptedPayload.HMAC,
-                                           serverEncryptedPayload.digitalSignature, serverEncryptedPayload.clientPublicKey, serverEncryptedPayload.digest)
+    # Instantiating the serverEncryptedPayload class to clientPayload variable
+    clientPayload = clientEncryptedPayload(serverEncryptedPayload.encryptedFile, serverEncryptedPayload.HMAC, serverEncryptedPayload.digitalSignature, serverEncryptedPayload.clientPublicKey, serverEncryptedPayload.digest)
     # Returning the payload encrypted data received from the server
-    return serverPayload.encryptedFile, serverPayload.HMAC, serverPayload.digest, serverPayload.clientPublicKey, serverPayload.digitalSignature
+    return clientPayload.encryptedFile, clientPayload.HMAC, clientPayload.digest, clientPayload.clientPublicKey, clientPayload.digitalSignature
 
 
 # A function that verifies the HMAC and the Digital Signature of the content received

@@ -1,36 +1,17 @@
-import datetime
-import pickle
-import time
-import bcrypt
-from hashlib import sha256, sha512
+from hashlib import sha256
 from Cryptodome.Cipher import AES
 from Cryptodome.Util.Padding import pad, unpad
 from Cryptodome.Random import get_random_bytes
-import os
-import socket
-import threading
-import pyDH
-import traceback
-from Cryptodome.PublicKey import RSA
-# Importing socket Module to perform socket operations
-import socket
-# Importing AES and RSA ciphers Module to perform AES and RSA mode of operations
-from Cryptodome.Cipher import AES, PKCS1_OAEP
 # Importing get_random_bytes to get random bytes suitable for cryptographic use
 from Cryptodome.Random import get_random_bytes
 # Importing Pad and Unpad Modules to perform pad and unpad operations
 from Cryptodome.Util.Padding import pad, unpad
-# Importing Digital Signature Module to perfrom Digital Signature operations
-from Cryptodome.Signature import pkcs1_15
-# Importing RSA Module to perfrom RSA operations
-from Cryptodome.PublicKey import RSA
-# Importing pickle Module for serialising Python objects
-import pickle
-# Importing Diffie-Hellman Key Exchange to perform Diffle-Hellman Key Exchange operations
-import pyDH
-# Importing HMAC Module to perform HMAC operations
-import hmac
-
+import os
+import sys
+from PySide6 import QtCore, QtWidgets, QtGui
+import random
+import bcrypt
+dirname = os.path.dirname(__file__)
 # AES Encrypt for static data stored on server
 def AESEncrypt(text, key, BLOCK_SIZE = 16):
     nonce = get_random_bytes(12)
@@ -48,10 +29,63 @@ def AESDecrypt(cipher_text_bytes, key, BLOCK_SIZE = 16):
     # Print the message in UTF8 (normal readable way
     return decrypted_text_bytes
 
-with open(r"C:\Work\acgfuck\server\database\result-127.0.0.1-2021-02-09_0227", "rb") as f:
+with open(os.path.join(dirname, 'database\\result-127.0.0.1-2021-02-09_2229'), "rb") as f:
     data = f.read()
     print(data)
-    encryptedKey = open(r"C:\Work\acgfuck\server\database\key", 'rb').read()
+    encryptedKey = open(os.path.join(dirname, 'database\key'), 'rb').read()
     decryptedKey = AESDecrypt(encryptedKey, sha256('passwordpassword1'.encode('utf-8')).digest())
     decryptedData = AESDecrypt(data, decryptedKey)
     print(decryptedData)
+
+class Password(QtWidgets.QDialog):
+    
+    def __init__(self, parent=None):
+        super(Password, self).__init__(parent)
+        # Set window title
+        title = "View Database"
+        self.setWindowTitle(title)
+        # Password Field widget
+        self.edit = QtWidgets.QLineEdit("")
+        # Button widget
+        self.button = QtWidgets.QPushButton("Verify Password")
+        # Create layout and add widgets
+        layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(self.edit)
+        layout.addWidget(self.button)
+        # Read stylesheet from the qss file (similar to CSS but for Qt)
+        _style = open(os.path.join(dirname, 'style.qss'), "r").read()
+        self.setStyleSheet(_style)
+        # Set dialog layout
+        self.setLayout(layout)
+        # Add button signal to verify the user's password
+        self.button.clicked.connect(self.verifyPassword)
+
+    # Greets the user
+    def verifyPassword(self):
+        # Instantiate hashed password as the text file of the bcrypt hashed password
+        hashedPassword = open(os.path.join(dirname, "database/passwd.txt"), "r").read()
+        # Make the password the userinput
+        password = self.edit.text()
+        # Hash the password the same process to compare both passwords
+        userHashedPassword = sha256(password.encode()).hexdigest()
+        # Creating a message box
+        msg = QtWidgets.QMessageBox()
+        if not bcrypt.checkpw(userHashedPassword.encode(), hashedPassword.encode()):
+            msg.setText("Incorrect Password")
+            msg.exec_()
+        else:
+            msg.setText("User Authenticated")
+            msg.exec_()
+            self.database()
+
+if os.path.exists(os.path.join(dirname, "database/passwd.txt")):
+    # Create the Qt Application
+    app = QtWidgets.QApplication(sys.argv)
+    # Create and show the form
+    signinBox = Password()
+    signinBox.resize(400, 300)
+    signinBox.show()
+    # Run the main Qt loop
+    sys.exit(app.exec_())
+# If password file is not found, server did not have an initial launch
+else: print("Database has not been set up yet. Please ensure that you have launched the server once.")

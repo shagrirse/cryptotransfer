@@ -1,1 +1,5 @@
-sha256('passwordpassword1'.encode('utf-8')).digest()
+def checker(data):
+    if data == 1:
+        print("Wow")
+    elif data == 2:
+        print("Woww")

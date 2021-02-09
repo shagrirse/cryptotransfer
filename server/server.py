@@ -30,6 +30,8 @@ import pickle
 import pyDH
 # Importing HMAC Module to perform HMAC operations
 import hmac
+# Relative path
+dirname = os.path.dirname(__file__)
 # Red Bold Font with Red Background
 redHighlight = "\x1b[1;37;41m"
 # Default Font Styles
@@ -302,7 +304,7 @@ def handler(conn, addr, passwd):
         # Verifying data and storing it on server
         if VerifierHMACDSIG(dataReceived[0], dataReceived[1], dataReceived[2], dataReceived[3], dataReceived[4], clientDHPublicKey):
             filename = default_save_base +  "127.0.0.1" + "-" + now.strftime("%Y-%m-%d_%H%M")
-            dest_file = open("database/" + filename, "wb")
+            dest_file = open(os.path.join(dirname, "database/") + filename, "wb")
             
             # If encrypted key file does not exist
             if not os.path.exists("database/key"):
@@ -310,12 +312,12 @@ def handler(conn, addr, passwd):
                 info_encrypted = AESEncrypt(dataReceived[0], random_key)
                 dest_file.write(info_encrypted)
                 encryptedKey = AESEncrypt(random_key, passwd)
-                with open("database/key", 'wb') as f:
+                with open(os.path.join(dirname, "database/key"), 'wb') as f:
                     f.write(encryptedKey)
                     f.close()
             # If it exists, decrypt it and get key to encrypt file
             else:
-                key = open("database/key", 'rb').read()
+                key = open(os.path.join(dirname, "database/key"), 'rb').read()
                 decryptedKey = AESDecrypt(key, passwd)
                 dest_file.write(AESEncrypt(dataReceived[0], decryptedKey))
                 dest_file.close()
@@ -332,8 +334,8 @@ def start(passwd):
 
 def user_login():
     # Try to open file 
-    if os.path.exists("database/passwd.txt"):
-        file = ((open("database/passwd.txt", "r")).readline()).encode('utf-8')
+    if os.path.exists(os.path.join(dirname,"database/passwd.txt")):
+        file = ((open(os.path.join(dirname,"database/passwd.txt"), "r")).readline()).encode('utf-8')
         password_input= input("Please enter a password: ")
         password_input = sha256(password_input.encode('utf-8')).hexdigest()
         passwd = sha256(password_input.encode('utf-8')).digest()
@@ -355,7 +357,7 @@ def user_login():
             password = input("Error. Please enter a valid password (More than 12 characters but less than 30. Must contain a number): ")
         else:
             print("You have created a password. Please remember this password for future use of the server to access files.")
-            with open("database/passwd.txt", "w") as file:
+            with open(os.path.join(dirname,"database/passwd.txt"), "w") as file:
                 hashed = (sha256(password.encode('utf-8'))).hexdigest()
                 passwd = sha256(password.encode('utf-8')).digest()
                 hashed = bcrypt.hashpw(hashed.encode('utf-8'), bcrypt.gensalt())
