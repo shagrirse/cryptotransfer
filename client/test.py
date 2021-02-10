@@ -20,6 +20,7 @@ from Cryptodome.Signature import pkcs1_15
 from Cryptodome.PublicKey import RSA
 # Importing pickle Module for serialising Python objects
 import pickle
+from PySide6.QtGui import QTextBlock
 # Importing Diffie-Hellman Key Exchange to perform Diffle-Hellman Key Exchange operations
 import pyDH
 # Importing Cryptodome Hash Module for generating Digital Signatures
@@ -27,7 +28,7 @@ from Cryptodome.Hash import SHA512
 # Import system module to get system arguments for PyQt
 import sys
 # Import all relevant PyQt modules
-from PySide6.QtWidgets import (QPushButton, QApplication, QVBoxLayout, QDialog)
+from PySide6.QtWidgets import (QLabel, QMessageBox, QPushButton, QApplication, QVBoxLayout, QDialog)
 # Import OS for paths
 import os
 # Font Styles (Colours and Colour of Background)
@@ -256,8 +257,8 @@ def HMAC_DS_Verifier(encryptedDataReceived, HMACReceived, serverDigest, serverPu
     if HMACResult and signatureResult:
         print("The HMAC and Digital Signature of the payload is verified!")
         # Writing data to the file as plaintext
-        with open(os.path.join(dirname, 'menu_today.txt'), "w") as f:
-            f.write(encryptedDataReceived.decode())
+        with open(os.path.join(dirname, 'menu_today.txt'), "wb") as f:
+            f.write(data)
     # If the HMAC verification is not successful, the codes below will execute
     else:
         print(f"{redHighlight}Warning!{normalText} File content might be modified. Connection to server is terminated. Relaunch the program to get the menu again.")
@@ -373,10 +374,10 @@ class Form(QDialog):
         layout.addWidget(self.send)
         # Set dialog layout
         self.setLayout(layout)
-        
+        # Button click events
         self.menuRequest.clicked.connect(self.requestMenu)
         self.send.clicked.connect(self.sendDayEnd)
-
+        
     def requestMenu(self):
         # Receving menu.txt from the server
         dataReceived = encryptedPayloadReceived(
@@ -385,12 +386,28 @@ class Form(QDialog):
         HMAC_DS_Verifier(
             dataReceived[0], dataReceived[1], dataReceived[2], dataReceived[3], dataReceived[4])
         clientSocket.close()
+        # Set popup icon and initialize message box as well as stylesheet
+        style_ = open(os.path.join(dirname, 'style.qss'), "r").read()
+        msg = QMessageBox()
+        msg.setWindowTitle("Success!")
+        msg.setStyleSheet(style_)
+        msg.setIcon(QMessageBox.Information)
+        msg.setText("Data has been received and saved as menu_today.txt")
+        msg.exec_()
         self.close()
 
     def sendDayEnd(self):
         # Sending day_end.csv file to server
         dataToServer(encryptedPayloadSent(AESSessionKey))
         clientSocket.close()
+        # Set popup icon and initialize message box as well as stylesheet
+        style_ = open(os.path.join(dirname, 'style.qss'), "r").read()
+        msg = QMessageBox()
+        msg.setWindowTitle("Success!")
+        msg.setStyleSheet(style_)
+        msg.setIcon(QMessageBox.Information)
+        msg.setText("Data has sent received as day_end.csv")
+        msg.exec_()
         self.close()
 
 
@@ -402,7 +419,7 @@ if __name__ == '__main__':
     app = QApplication(sys.argv)
     # Create and show the form
     form = Form()
-    form.resize(300, 100)
+    form.resize(400, 150)
     form.show()
     # Run the main Qt loop
     sys.exit(app.exec_())

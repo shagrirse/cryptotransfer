@@ -51,37 +51,60 @@ def diffieHellmanKeyExchange():
     # Returning the value of client public key
     return serverDHPublicKey
 
-# Send function to send item to client
+# A function that sends information to the server
 def send(message, s):
+    # Serialising the information to be sent to the server
     msg = pickle.dumps(message)
+    # Sending information to the server
     s.send(msg)
     
+# A function that receives information from the server
 def receive_data(s):
+    # Setting buffer size
     BUFF_SIZE = 8192
+    # Initialising data variable as an empty byte string
     data = b''
     while True:
+        # Receiving information from the server
         packet = s.recv(BUFF_SIZE)
+        # Appending information received from the server to data variable
         data += packet
+        # If the length of the packet is less than the buffer size, it will break the While loop
         if len(packet) < BUFF_SIZE:
             break
+    # Unserialising the information received from the server
     data = pickle.loads(data)
+    # Returning the data received
     return data
 
-# AES Encrypt for static data stored on server
-def AESEncrypt(text, key, BLOCK_SIZE = 16):
+# A function that performs AES Encryption Operation
+# AES block size is 128 bits or 16 bytes
+def AESEncrypt(plaintext, key, BLOCK_SIZE=16):
+    # Generating AES Nonce
+    # Maximum AES Nonce size is 96 bits or 12 bytes
     nonce = get_random_bytes(12)
-    cipher = AES.new(key, AES.MODE_CTR, nonce = nonce)  # new AES cipher using key generated
-    cipher_text_bytes = cipher.encrypt(pad(text,BLOCK_SIZE)) # encrypt data
+    # Instantiating AES cipher
+    # AES cipher using the key generated
+    cipher = AES.new(key, AES.MODE_CTR, nonce=nonce)
+    # Encrypting data using AES cipher
+    cipher_text_bytes = cipher.encrypt(pad(plaintext, BLOCK_SIZE))
+    # Appending AES Nonce at the end of the encrypted data
     cipher_text_bytes = cipher_text_bytes + nonce
+    # Returning AES Encrypted Data in bytes
     return cipher_text_bytes
 
-def AESDecrypt(cipher_text_bytes, key, BLOCK_SIZE = 16):
+
+# A function that performs AES Decryption Operation
+# AES block size is 128 bits or 16 bytes
+def AESDecrypt(cipher_text_bytes, key, BLOCK_SIZE=16):
+    # Extracting AES Encrypted Data, 
+    # Extracting AES Nonce
     cipher_text_bytes, nonce = cipher_text_bytes[:-12] , cipher_text_bytes[-12:]
-    # create a new AES cipher object with the same key and mode
-    my_cipher = AES.new(key,AES.MODE_CTR, nonce = nonce)
-    # Now decrypt the text using your new cipher
-    decrypted_text_bytes = unpad(my_cipher.decrypt(cipher_text_bytes),BLOCK_SIZE)
-    # Print the message in UTF8 (normal readable way
+    # Instantiating AES cipher with the same key and mode
+    cipher = AES.new(key, AES.MODE_CTR, nonce=nonce)
+    # Decrypting data
+    decrypted_text_bytes = unpad(cipher.decrypt(cipher_text_bytes), BLOCK_SIZE)
+    # Returning AES Unencrypted Data in bytes
     return decrypted_text_bytes
 
 # Transit codes
@@ -99,7 +122,6 @@ def generateServerRSAKeyPair(conn):
     serverRSAPublicKey = serverRSAKeyPair.publickey().export_key()
     # Sending information to the server
     send(serverRSAPublicKey, conn)
-    loop = True
     # Returning client RSA private key
     return serverRSAKeyPair
 
@@ -216,6 +238,7 @@ def encryptedPayloadReceived(serverEncryptedPayload):
     # Returning the payload encrypted data received from the server
     return clientPayload.encryptedFile, clientPayload.HMAC, clientPayload.digest, clientPayload.clientPublicKey, clientPayload.digitalSignature
 
+# A data class to store the encrypted day_end.csv, HMAC, digital signature of day_end.csv, client public key and digest
 class clientEncryptedPayload:
     def __init__(self, encryptedFile, HMAC, digitalSignature, clientPublicKey, digest):
         self.encryptedFile = encryptedFile
@@ -320,6 +343,7 @@ def handler(conn, addr, passwd):
         print(f"The message from the client is invalid or has been tampered with. Closing connection from client {addr[0]}:{addr[1]}...")
         conn.close()
 
+# Function to start the server
 def start(passwd):
     server.listen()
     print(f"[LISTENING] SERVER IS LISTENING ON LOOPBACK ADDRESS")
@@ -329,6 +353,7 @@ def start(passwd):
         thread.start()
         print(f"[ACTIVE CONNECTIONS] {threading.activeCount() - 1}")
 
+# User Login Function
 def user_login():
     # Try to open file 
     if os.path.exists(os.path.join(dirname,"database/passwd.txt")):
@@ -353,6 +378,7 @@ def user_login():
         while len(password) < 12 or len(password) > 30 or not any(map(lambda x: x.isnumeric(), [i for i in password])):
             password = input("Error. Please enter a valid password (More than 12 characters but less than 30. Must contain a number): ")
         else:
+            # Creating of password and hashing with bcrypt with salt
             print("You have created a password. Please remember this password for future use of the server to access files.")
             with open(os.path.join(dirname,"database/passwd.txt"), "w") as file:
                 hashed = (sha256(password.encode('utf-8'))).hexdigest()
@@ -360,6 +386,7 @@ def user_login():
                 hashed = bcrypt.hashpw(hashed.encode('utf-8'), bcrypt.gensalt())
                 file.write(hashed.decode('utf-8'))
             time.sleep(2)
+            # Start server and pass password as argument
             start(passwd)
-start(sha256('passwordpassword1'.encode('utf-8')).digest())
-# user_login()
+# start(sha256('passwordpassword1'.encode('utf-8')).digest())
+user_login()
