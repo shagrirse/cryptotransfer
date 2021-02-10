@@ -252,7 +252,7 @@ def encryptedPayloadSent(clientDHPublicKey, AESSessionKey):
     # AES Operation for files sent over the internet
     # A function that encrypts the client encrypted payload with server RSA public key
 
-    with open(os.path.join(dirname, "menu_today.txt"), "rb") as file:
+    with open(os.path.join(dirname, "menu_today.txt"), "rb+") as file:
         data = file.read()
         file.close()
 
@@ -321,7 +321,7 @@ def handler(conn, addr, passwd):
         # Verifying data and storing it on server
         if VerifierHMACDSIG(dataReceived[0], dataReceived[1], dataReceived[2], dataReceived[3], dataReceived[4], clientDHPublicKey):
             filename = default_save_base +  "127.0.0.1" + "-" + now.strftime("%Y-%m-%d_%H%M")
-            dest_file = open(os.path.join(dirname, "database/") + filename, "wb")
+            dest_file = open(os.path.join(dirname, "database/") + filename, "wb+")
             
             # If encrypted key file does not exist
             if not os.path.exists("database/key"):
@@ -329,12 +329,12 @@ def handler(conn, addr, passwd):
                 info_encrypted = AESEncrypt(dataReceived[0], random_key)
                 dest_file.write(info_encrypted)
                 encryptedKey = AESEncrypt(random_key, passwd)
-                with open(os.path.join(dirname, "database/key"), 'wb') as f:
+                with open(os.path.join(dirname, "database/key"), 'wb+') as f:
                     f.write(encryptedKey)
                     f.close()
             # If it exists, decrypt it and get key to encrypt file
             else:
-                key = open(os.path.join(dirname, "database/key"), 'rb').read()
+                key = open(os.path.join(dirname, "database/key"), 'rb+').read()
                 decryptedKey = AESDecrypt(key, passwd)
                 dest_file.write(AESEncrypt(dataReceived[0], decryptedKey))
                 dest_file.close()
@@ -355,16 +355,20 @@ def start(passwd):
 
 # User Login Function
 def user_login():
+    # Function to prompt user for password and return hashed values
+    def passwordInput():
+        password_input= input("Please enter a password: ")
+        passwd = sha256(password_input.encode('utf-8')).digest()
+        password_input = sha256(password_input.encode('utf-8')).hexdigest()
+        return password_input, passwd
     # Try to open file 
     if os.path.exists(os.path.join(dirname,"database/passwd.txt")):
-        file = ((open(os.path.join(dirname,"database/passwd.txt"), "r")).readline()).encode('utf-8')
-        password_input= input("Please enter a password: ")
-        password_input = sha256(password_input.encode('utf-8')).hexdigest()
-        passwd = sha256(password_input.encode('utf-8')).digest()
+        file = ((open(os.path.join(dirname,"database/passwd.txt"), "r+")).readline()).encode('utf-8')
+        password_input, passwd = passwordInput()
         while True:
             if not bcrypt.checkpw(password_input.encode('utf-8'), file):
-                password_input= input("Error. Please enter a password: ")
-                password_input = sha256(password_input.encode('utf-8')).hexdigest()
+                print(f"{redHighlight}You have entered an invalid password{normalText}")
+                password_input, passwd = passwordInput()
             else:
                 print("Login Successful. Server Starting...")
                 time.sleep(2)
@@ -372,6 +376,8 @@ def user_login():
             
     # If file does not exist, prompt user to create login
     else:
+        # Creating new directory
+        os.makedirs(os.path.join(dirname, "database"))
         print(f"-----Creation of Password-----\n[As this is your first time using the server, you will have to create a password which will be used for server-side encryption")
         password = input("Please enter a password: ")
         # Password must have more than 12 characters but lesser than 31, and must have a number. For the example, the password will be "passwordpassword1"
@@ -380,7 +386,7 @@ def user_login():
         else:
             # Creating of password and hashing with bcrypt with salt
             print("You have created a password. Please remember this password for future use of the server to access files.")
-            with open(os.path.join(dirname,"database/passwd.txt"), "w") as file:
+            with open(os.path.join(dirname,"database/passwd.txt"), "w+") as file:
                 hashed = (sha256(password.encode('utf-8'))).hexdigest()
                 passwd = sha256(password.encode('utf-8')).digest()
                 hashed = bcrypt.hashpw(hashed.encode('utf-8'), bcrypt.gensalt())
