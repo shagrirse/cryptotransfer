@@ -216,15 +216,6 @@ def encryptedPayloadReceived(serverEncryptedPayload):
     # Returning the payload encrypted data received from the server
     return clientPayload.encryptedFile, clientPayload.HMAC, clientPayload.digest, clientPayload.clientPublicKey, clientPayload.digitalSignature
 
-# Hash check for message sent from client to server
-def hashcheck(conn, intendedMessage, addr):
-    clientMessage = (receive_data(conn))
-    if not (clientMessage == sha256(intendedMessage.encode()).hexdigest()):
-        print(f"The message from the client is invalid or has been tampered with. Closing connection from client {addr[0]}:{addr[1]}...")
-        conn.close()
-        return False
-    else: return True
-
 class clientEncryptedPayload:
     def __init__(self, encryptedFile, HMAC, digitalSignature, clientPublicKey, digest):
         self.encryptedFile = encryptedFile
@@ -238,7 +229,7 @@ def encryptedPayloadSent(clientDHPublicKey, AESSessionKey):
     # AES Operation for files sent over the internet
     # A function that encrypts the client encrypted payload with server RSA public key
 
-    with open("menu_today.txt", "rb") as file:
+    with open(os.path.join(dirname, "menu_today.txt"), "rb") as file:
         data = file.read()
         file.close()
 
@@ -291,13 +282,16 @@ def handler(conn, addr, passwd):
     clientDHPublicKey = int((decryptDiffieHellman(clientEncryptedDHPublicKey, sessionServerRSAPrivateKey)))
     AESSessionKey = diffieHellmanKeyExchangeCalculations(clientDHPublicKey)
     print(f"Client's ({addr[0]}:{addr[1]}) Diffie Hellman public key has been received!\n")
+    # Receive request from client
+    clientMessage = (receive_data(conn))
     # Receive data from client, CMD_GETMENU
-    if hashcheck(conn, cmd_GET_MENU, addr): 
+    if clientMessage == sha256(cmd_GET_MENU.encode()).hexdigest(): 
         # Send menuPayload with 'clientRSAPublicKey', but it is actually server's generated public key. Same attribute type to make them recognizable in each other's program
         menuPayload = encryptedPayloadSent(clientDHPublicKey, AESSessionKey)
         send(menuPayload, conn)
-    print(f"Client's ({addr[0]}:{addr[1]}) Menu of the day command has been received and its integrity verified. Sending encrypted menu to client!\n")
-    if hashcheck(conn, cmd_END_DAY, addr):
+        print(f"Client's ({addr[0]}:{addr[1]}) Menu of the day command has been received and its integrity verified. Sending encrypted menu to client!\n")
+        conn.close()
+    elif clientMessage == sha256(cmd_END_DAY.encode()).hexdigest():
         # Receving day_end.csv from server
         dataReceived = encryptedPayloadReceived(
             pickle.loads(AESDecrypt(receive_data(conn), AESSessionKey)))
@@ -322,6 +316,9 @@ def handler(conn, addr, passwd):
                 dest_file.write(AESEncrypt(dataReceived[0], decryptedKey))
                 dest_file.close()
         else: conn.close()
+    else: 
+        print(f"The message from the client is invalid or has been tampered with. Closing connection from client {addr[0]}:{addr[1]}...")
+        conn.close()
 
 def start(passwd):
     server.listen()
