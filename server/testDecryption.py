@@ -48,7 +48,7 @@ def AESDecrypt(cipher_text_bytes, key, BLOCK_SIZE = 16):
     # Print the message in UTF8 (normal readable way
     return decrypted_text_bytes
 
-with open(r"C:\Work\acgfuck\server\database\result-127.0.0.1-2021-02-09_0227", "rb") as f:
+with open(r"C:\Work\acgfuck\server\database\result-127.0.0.1-2021-02-10_2013", "rb") as f:
     data = f.read()
     print(data)
     encryptedKey = open(r"C:\Work\acgfuck\server\database\key", 'rb').read()
