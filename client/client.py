@@ -5,7 +5,7 @@ from Cryptodome.Util.Padding import pad, unpad
 # Importing socket Module to perform socket operations
 import socket
 # Importing Hashlib Module for hashing purposes
-from hashlib import sha256, sha512
+from hashlib import sha256
 # Importing AES and RSA ciphers Module to perform AES and RSA mode of operations
 from Cryptodome.Cipher import AES, PKCS1_OAEP
 # Importing get_random_bytes to get random bytes suitable for cryptographic use
@@ -20,7 +20,6 @@ from Cryptodome.Signature import pkcs1_15
 from Cryptodome.PublicKey import RSA
 # Importing pickle Module for serialising Python objects
 import pickle
-from PySide6.QtGui import QTextBlock
 # Importing Diffie-Hellman Key Exchange to perform Diffle-Hellman Key Exchange operations
 import pyDH
 # Importing Cryptodome Hash Module for generating Digital Signatures
@@ -28,7 +27,7 @@ from Cryptodome.Hash import SHA512
 # Import system module to get system arguments for PyQt
 import sys
 # Import all relevant PyQt modules
-from PySide6.QtWidgets import (QLabel, QMessageBox, QPushButton, QApplication, QVBoxLayout, QDialog)
+from PySide6.QtWidgets import (QMessageBox, QPushButton, QApplication, QVBoxLayout, QDialog)
 # Import OS for paths
 import os
 # Font Styles (Colours and Colour of Background)
