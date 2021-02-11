@@ -45,6 +45,7 @@ def selectFile():
     # Getting a password input from the user
     password_input = input("\nPlease enter a password: ")
     # Hashing the password input
+    passwd = sha256(password_input.encode('utf-8')).digest()
     password_input = sha256(password_input.encode('utf-8')).hexdigest()
     # Trying to open the file
     if os.path.exists(os.path.join(dirname, "database/passwd.txt")):
@@ -58,6 +59,7 @@ def selectFile():
                 print(
                     f"\n{redHighlight}You have entered an invalid password{normalText}")
                 password_input = input("Please enter a password: ")
+                passwd = sha256(password_input.encode('utf-8')).digest()
                 password_input = sha256(
                     password_input.encode('utf-8')).hexdigest()
             # If the user has entered a valid password, the codes below will execute
@@ -98,8 +100,7 @@ def selectFile():
                     encryptedKey = open(os.path.join(
                         dirname, "database/key"), 'rb+').read()
                     # Decrypting the encrypted key using the user's password
-                    decryptedKey = AESDecrypt(encryptedKey, sha256(
-                        "passwordpassword1".encode('utf-8')).digest())
+                    decryptedKey = AESDecrypt(encryptedKey, passwd)
                     # Decrypting the file content using the decrypted key in the key file
                     decryptedData = AESDecrypt(data, decryptedKey)
                     # Printing the decrypted file content
