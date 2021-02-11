@@ -1,0 +1,43 @@
+Group Members:
+1. Danzel Tan Xuan Inn (1909423)
+2. Gabriel Tan Jun Hong (2025832)
+3. Gary Tan Jin Xian (2025791)
+
+
+Contributions:
+
+Python File: client.py
+
+1. Client Socket: Danzel
+2. AES Operations: Gary and Danzel
+3. Diffie-Hellman Operations: Gary and Danzel
+4. Sending and Receiving Data to and from Server: Gary and Danzel
+5. HMAC Operations: Gary
+6. Digital Signatures: Gary
+7. RSA Operations: Gabriel
+8. Client Graphical User Interface: Danzel
+9. Final Touch Ups: Gary and Danzel
+10. Code Comments: Gary
+
+
+Python File: server.py
+
+1. Server Socket: Danzel
+2. Handle Client Connections Operations: Danzel
+3. Server User Login: Danzel
+4. AES Operations: Gary and Danzel
+5. Diffie-Hellman Operations: Gary and Danzel
+6. Sending and Receiving Data to and from Server: Gary and Danzel
+7. HMAC Operations: Gary
+8. Digital Signatures: Gary
+9. RSA Operations: Gabriel
+10. Server User Interface: Danzel
+11. Final Touch Ups: Gary and Danzel
+12. Code Comments: Gary
+
+
+Python File: fileDecryption.py
+
+1. Program Design: Danzel
+2. User Interface: Gary
+3. Code Comments: Gary
