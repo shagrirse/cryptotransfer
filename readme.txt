@@ -5,3 +5,4 @@
 5. Type "python client.py"
 
 You might like to start Wireshark to listen to the connection before running client.py
+To install the appropriate libraries, use pip install -r requirements.txt with the working directory being the main folder
