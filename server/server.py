@@ -259,7 +259,7 @@ class clientEncryptedPayload:
         self.digest = digest
 
 
-# A function that stores all the encrypted data to a data class called serverEncryptedPayload
+# A function that stores all the encrypted data to a data class called clientEncryptedPayload
 def encryptedPayloadSent(clientDHPublicKey, AESSessionKey):
     # Instantiating file data as data variable
     with open(os.path.join(dirname, "menu_today.txt"), "rb+") as file:
