@@ -20,6 +20,7 @@ from Cryptodome.Signature import pkcs1_15
 from Cryptodome.PublicKey import RSA
 # Importing pickle Module for serialising Python objects
 import pickle
+from PySide6 import QtGui
 # Importing Diffie-Hellman Key Exchange to perform Diffle-Hellman Key Exchange operations
 import pyDH
 # Importing Cryptodome Hash Module for generating Digital Signatures
@@ -54,7 +55,6 @@ clientSocket.connect(ADDRESS)
 DiffieHellmanKey = pyDH.DiffieHellman(5)
 # Defining relative path
 dirname = os.path.dirname(__file__)
-
 
 # A function that sends information to the server
 def send(message, s):
@@ -375,6 +375,7 @@ class Form(QDialog):
         # Setting style sheet
         style_ = open(os.path.join(dirname, 'style.qss'), "r").read()
         self.setStyleSheet(style_)
+        self.setWindowIcon(QtGui.QIcon(os.path.join(dirname, "menu.png")))
         # Create widgets
         self.menuRequest = QPushButton("Get Menu From Server")
         self.send = QPushButton("Send Day End Report")
