@@ -210,14 +210,13 @@ def encryptedPayloadReceived(serverEncryptedPayload):
 
 # A function that verifies the HMAC and the Digital Signature of the content received
 def HMAC_DS_Verifier(encryptedDataReceived, HMACReceived, serverDigest, serverPublicKey, serverSignature):
-    # Drcrypted Server Payload
+    # AES Encrypted Data received from server
     data = encryptedDataReceived
 
     # A function that verifies the HMAC of the data received from server
     def HMACVerifier():
         # HMAC key is the same as the AES session key
         HMACKey = diffieHellmanKeyExchangeCalculations(serverDHPublicKey)
-        # AES Encrypted Data received from Server
         # Instantiating HMAC object and generating HMAC using SHA-512 hashing algorithm
         HMAC = hmac.new(HMACKey, data, digestmod="sha512")
         # If the HMAC generated matches to the value of HMAC received, the function will return True
@@ -229,7 +228,7 @@ def HMAC_DS_Verifier(encryptedDataReceived, HMACReceived, serverDigest, serverPu
 
     # A function that verifies the signature of the data received from server
     def digitalSignatureVerifier():
-        # Verifying the signature of data received from Server with the server public key of the RSA key pair
+        # Verifying the signature of data received from server with the server public key of the RSA key pair
         verifier = pkcs1_15.new(RSA.import_key(serverPublicKey))
         # Generating the digest of the data
         digest = SHA512.new(data=data)
@@ -286,7 +285,7 @@ def keyExchanges():
         receivedServerPublicRSAKey = receive_data(clientSocket)
         # Indicating that the data has been received from the server
         print("Server's RSA public key has been received from the server!")
-        # # Extracting server RSA public key
+        # Extracting server RSA public key
         receivedServerPublicRSAKey = RSA.import_key(receivedServerPublicRSAKey)
         # Returning the server RSA public key
         return receivedServerPublicRSAKey
