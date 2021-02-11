@@ -26,8 +26,11 @@ import pyDH
 from Cryptodome.Hash import SHA512
 # Importing system module to get system arguments for PyQt
 import sys
-# Import OS for paths
+# Importing OS for paths
 import os
+# Importing all relevant PyQt modules for Graphical User Interface (GUI)
+from PySide6.QtWidgets import (
+    QMessageBox, QPushButton, QApplication, QVBoxLayout, QDialog)
 
 # Font Styles (Colours and Colour of Background)
 # Red Bold Font with Red Background
@@ -363,9 +366,6 @@ def keyExchanges():
     return AESSessionKey, serverDHPublicKey
 
 
-# Importing all relevant PyQt modules for Graphical User Interface (GUI)
-from PySide6.QtWidgets import (
-    QMessageBox, QPushButton, QApplication, QVBoxLayout, QDialog)
 # Main program
 class Form(QDialog):
 
