@@ -1,35 +1,13 @@
-import datetime
-import pickle
-import time
 import bcrypt
-from hashlib import sha256, sha512
+from hashlib import sha256
 from Cryptodome.Cipher import AES
-from Cryptodome.Util.Padding import pad, unpad
 from Cryptodome.Random import get_random_bytes
-import os
-import socket
-import threading
-import pyDH
-import traceback
-from Cryptodome.PublicKey import RSA
-# Importing socket Module to perform socket operations
-import socket
 # Importing AES and RSA ciphers Module to perform AES and RSA mode of operations
-from Cryptodome.Cipher import AES, PKCS1_OAEP
+from Cryptodome.Cipher import AES
 # Importing get_random_bytes to get random bytes suitable for cryptographic use
 from Cryptodome.Random import get_random_bytes
 # Importing Pad and Unpad Modules to perform pad and unpad operations
 from Cryptodome.Util.Padding import pad, unpad
-# Importing Digital Signature Module to perfrom Digital Signature operations
-from Cryptodome.Signature import pkcs1_15
-# Importing RSA Module to perfrom RSA operations
-from Cryptodome.PublicKey import RSA
-# Importing pickle Module for serialising Python objects
-import pickle
-# Importing Diffie-Hellman Key Exchange to perform Diffle-Hellman Key Exchange operations
-import pyDH
-# Importing HMAC Module to perform HMAC operations
-import hmac
 
 # AES Encrypt for static data stored on server
 def AESEncrypt(text, key, BLOCK_SIZE = 16):
@@ -48,7 +26,7 @@ def AESDecrypt(cipher_text_bytes, key, BLOCK_SIZE = 16):
     # Print the message in UTF8 (normal readable way
     return decrypted_text_bytes
 
-with open(r"C:\Work\acgfuck\server\database\result-127.0.0.1-2021-02-10_2013", "rb") as f:
+with open(r"C:\Work\acgfuck\server\database\result-127.0.0.1-2021-02-11_0859", "rb") as f:
     data = f.read()
     print(data)
     encryptedKey = open(r"C:\Work\acgfuck\server\database\key", 'rb').read()

@@ -26,12 +26,8 @@ import pyDH
 from Cryptodome.Hash import SHA512
 # Importing system module to get system arguments for PyQt
 import sys
-# Importing all relevant PyQt modules for Graphical User Interface (GUI)
-from PySide6.QtWidgets import (
-    QMessageBox, QPushButton, QApplication, QVBoxLayout, QDialog)
 # Import OS for paths
 import os
-
 
 # Font Styles (Colours and Colour of Background)
 # Red Bold Font with Red Background
@@ -367,6 +363,9 @@ def keyExchanges():
     return AESSessionKey, serverDHPublicKey
 
 
+# Importing all relevant PyQt modules for Graphical User Interface (GUI)
+from PySide6.QtWidgets import (
+    QMessageBox, QPushButton, QApplication, QVBoxLayout, QDialog)
 # Main program
 class Form(QDialog):
 
@@ -396,7 +395,6 @@ class Form(QDialog):
         # Decrypting encrypted menu.txt from server
         HMAC_DS_Verifier(
             dataReceived[0], dataReceived[1], dataReceived[2], dataReceived[3], dataReceived[4])
-        clientSocket.close()
         # Set popup icon and initialize message box as well as stylesheet
         style_ = open(os.path.join(dirname, 'style.qss'), "r").read()
         msg = QMessageBox()
@@ -410,7 +408,6 @@ class Form(QDialog):
     def sendDayEnd(self):
         # Sending day_end.csv file to server
         dataToServer(encryptedPayloadSent(AESSessionKey))
-        clientSocket.close()
         # Set popup icon and initialize message box as well as stylesheet
         style_ = open(os.path.join(dirname, 'style.qss'), "r").read()
         msg = QMessageBox()
