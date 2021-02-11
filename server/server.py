@@ -240,22 +240,22 @@ def VerifierHMACDSIG(encryptedDataReceived, HMACReceived, serverDigest, serverPu
         return False
 
 
-# A function that extracts all the encrypted data from a data class called clientEncryptedPayload
-def encryptedPayloadReceived(clientEncryptedPayload):
+# A function that extracts all the encrypted data from a data class called serverEncryptedPayload
+def encryptedPayloadReceived(serverEncryptedPayload):
     # Instantiating the clientEncryptedPayload class to clientPayload variable
-    clientPayload = serverEncryptedPayload(clientEncryptedPayload.encryptedFile, clientEncryptedPayload.HMAC,
-                                           clientEncryptedPayload.digitalSignature, clientEncryptedPayload.serverPublicKey, clientEncryptedPayload.digest)
-    # Returning the payload encrypted data received from the server
-    return clientPayload.encryptedFile, clientPayload.HMAC, clientPayload.digest, clientPayload.serverPublicKey, clientPayload.digitalSignature
+    clientPayload = clientEncryptedPayload(serverEncryptedPayload.encryptedFile, serverEncryptedPayload.HMAC,
+                                           serverEncryptedPayload.digitalSignature, serverEncryptedPayload.clientPublicKey, serverEncryptedPayload.digest)
+    # Returning the payload encrypted data received from the client
+    return clientPayload.encryptedFile, clientPayload.HMAC, clientPayload.digest, clientPayload.clientPublicKey, clientPayload.digitalSignature
 
 
 # A data class to store the encrypted day_end.csv, HMAC, digital signature of day_end.csv, server public key and digest
-class serverEncryptedPayload:
-    def __init__(self, encryptedFile, HMAC, digitalSignature, serverPublicKey, digest):
+class clientEncryptedPayload:
+    def __init__(self, encryptedFile, HMAC, digitalSignature, clientPublicKey, digest):
         self.encryptedFile = encryptedFile
         self.HMAC = HMAC
         self.digitalSignature = digitalSignature
-        self.serverPublicKey = serverPublicKey
+        self.clientPublicKey = clientPublicKey
         self.digest = digest
 
 
@@ -292,8 +292,8 @@ def encryptedPayloadSent(clientDHPublicKey, AESSessionKey):
     digitalSignature = digitalSignatureOperation()
 
     # Returning the payload encrypted data to be sent to the client
-    # Instantiating the serverEncryptedPayload class to payload variable
-    payload = serverEncryptedPayload(data, HMACOperation(
+    # Instantiating the clientEncryptedPayload class to payload variable
+    payload = clientEncryptedPayload(data, HMACOperation(
     ), digitalSignature[2], (digitalSignature[1]).export_key(), (digitalSignature[0]).digest())
 
     # Returning the encrypted pickled payload and AES session key
