@@ -1,4 +1,4 @@
-# Importing get_random_bytes to get random bytes suitable for cryptographic use
+# Importing get_random_bytes Module to get random bytes suitable for cryptographic use
 from Cryptodome.Random import get_random_bytes
 # Importing Pad and Unpad Modules to perform pad and unpad operations
 from Cryptodome.Util.Padding import pad, unpad
@@ -8,10 +8,6 @@ import socket
 from hashlib import sha256
 # Importing AES and RSA ciphers Module to perform AES and RSA mode of operations
 from Cryptodome.Cipher import AES, PKCS1_OAEP
-# Importing get_random_bytes to get random bytes suitable for cryptographic use
-from Cryptodome.Random import get_random_bytes
-# Importing Pad and Unpad Modules to perform pad and unpad operations
-from Cryptodome.Util.Padding import pad, unpad
 # Importing HMAC Module to perform HMAC operations
 import hmac
 # Importing Digital Signature Module to perfrom Digital Signature operations
