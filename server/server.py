@@ -40,7 +40,7 @@ ADDRESS = ("127.0.0.1", 8888) # Store server IP and port number in the 'ADDRESS'
 DC_MSG = "!DISCONNECT FROM SERVER!" # Disconnect message sent from client to server to drop session
 cmd_GET_MENU = "GET_MENU"
 cmd_END_DAY = "CLOSING"
-default_menu = "server\menu_today.txt"
+default_menu = "server/menu_today.txt"
 default_save_base = "result-"
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server.bind(ADDRESS)
