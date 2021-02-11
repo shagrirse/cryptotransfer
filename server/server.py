@@ -288,60 +288,65 @@ def encryptedPayloadSent(clientDHPublicKey, AESSessionKey):
     return AESEncrypt(pickle.dumps(payload), AESSessionKey)
 
 def handler(conn, addr, passwd):
-    now = datetime.datetime.now()
-    sessionServerRSAPrivateKey = generateServerRSAKeyPair(conn)
-    # Indicating that the server has generated the key and sent public key to client
-    time.sleep(2)
-    print(f"Server's RSA public key has been generated and sent to the client {addr[0]}:{addr[1]}\n")
-    sessionClientRSAPublicKey = ClientRSAPublicKeyreceive(conn)
-    # Indicating that the data has been received from the client
-    print(f"Client's Public RSA key (Client {addr[0]}:{addr[1]}) has been received!\n")
-    # Send the encrypted diffie hellman key to the client, encrypted with the client's public RSA key
-    serverDHPublicKey = encryptDiffie(diffieHellmanKeyExchange(), sessionClientRSAPublicKey)
-    send(serverDHPublicKey, conn)
-    print(f"Diffie Hellman key has been generated and sent to the client (Client {addr[0]}:{addr[1]})\n")
-    # Receive client's public DH key and decrypt it with server's private RSA key
-    clientEncryptedDHPublicKey = receive_data(conn)
-    clientDHPublicKey = int((decryptDiffieHellman(clientEncryptedDHPublicKey, sessionServerRSAPrivateKey)))
-    AESSessionKey = diffieHellmanKeyExchangeCalculations(clientDHPublicKey)
-    print(f"Client's ({addr[0]}:{addr[1]}) Diffie Hellman public key has been received!\n")
-    # Receive request from client
-    clientMessage = (receive_data(conn))
-    # Receive data from client, CMD_GETMENU
-    if clientMessage == sha256(cmd_GET_MENU.encode()).hexdigest(): 
-        # Send menuPayload with 'clientRSAPublicKey', but it is actually server's generated public key. Same attribute type to make them recognizable in each other's program
-        menuPayload = encryptedPayloadSent(clientDHPublicKey, AESSessionKey)
-        send(menuPayload, conn)
-        print(f"Client's ({addr[0]}:{addr[1]}) Menu of the day command has been received and its integrity verified. Sending encrypted menu to client!\n")
-        conn.close()
-    elif clientMessage == sha256(cmd_END_DAY.encode()).hexdigest():
-        # Receving day_end.csv from server
-        dataReceived = encryptedPayloadReceived(
-            pickle.loads(AESDecrypt(receive_data(conn), AESSessionKey)))
-        # Verifying data and storing it on server
-        if VerifierHMACDSIG(dataReceived[0], dataReceived[1], dataReceived[2], dataReceived[3], dataReceived[4], clientDHPublicKey):
-            filename = default_save_base +  "127.0.0.1" + "-" + now.strftime("%Y-%m-%d_%H%M")
-            dest_file = open(os.path.join(dirname, "database/") + filename, "wb+")
-            
-            # If encrypted key file does not exist
-            if not os.path.exists("database/key"):
-                random_key = get_random_bytes(32)
-                info_encrypted = AESEncrypt(dataReceived[0], random_key)
-                dest_file.write(info_encrypted)
-                encryptedKey = AESEncrypt(random_key, passwd)
-                with open(os.path.join(dirname, "database/key"), 'wb+') as f:
-                    f.write(encryptedKey)
-                    f.close()
-            # If it exists, decrypt it and get key to encrypt file
-            else:
-                key = open(os.path.join(dirname, "database/key"), 'rb+').read()
-                decryptedKey = AESDecrypt(key, passwd)
-                dest_file.write(AESEncrypt(dataReceived[0], decryptedKey))
-                dest_file.close()
-        else: conn.close()
-    else: 
-        print(f"The message from the client is invalid or has been tampered with. Closing connection from client {addr[0]}:{addr[1]}...")
-        conn.close()
+    conn.settimeout(0)
+    try:
+        now = datetime.datetime.now()
+        sessionServerRSAPrivateKey = generateServerRSAKeyPair(conn)
+        # Indicating that the server has generated the key and sent public key to client
+        time.sleep(2)
+        print(f"Server's RSA public key has been generated and sent to the client {addr[0]}:{addr[1]}\n")
+        sessionClientRSAPublicKey = ClientRSAPublicKeyreceive(conn)
+        # Indicating that the data has been received from the client
+        print(f"Client's Public RSA key (Client {addr[0]}:{addr[1]}) has been received!\n")
+        # Send the encrypted diffie hellman key to the client, encrypted with the client's public RSA key
+        serverDHPublicKey = encryptDiffie(diffieHellmanKeyExchange(), sessionClientRSAPublicKey)
+        send(serverDHPublicKey, conn)
+        print(f"Diffie Hellman key has been generated and sent to the client (Client {addr[0]}:{addr[1]})\n")
+        # Receive client's public DH key and decrypt it with server's private RSA key
+        clientEncryptedDHPublicKey = receive_data(conn)
+        clientDHPublicKey = int((decryptDiffieHellman(clientEncryptedDHPublicKey, sessionServerRSAPrivateKey)))
+        AESSessionKey = diffieHellmanKeyExchangeCalculations(clientDHPublicKey)
+        print(f"Client's ({addr[0]}:{addr[1]}) Diffie Hellman public key has been received!\n")
+        # Receive request from client
+        clientMessage = (receive_data(conn))
+        # Receive data from client, CMD_GETMENU
+        if clientMessage == sha256(cmd_GET_MENU.encode()).hexdigest(): 
+            # Send menuPayload with 'clientRSAPublicKey', but it is actually server's generated public key. Same attribute type to make them recognizable in each other's program
+            menuPayload = encryptedPayloadSent(clientDHPublicKey, AESSessionKey)
+            send(menuPayload, conn)
+            print(f"Client's ({addr[0]}:{addr[1]}) Menu of the day command has been received and its integrity verified. Sending encrypted menu to client!\n")
+            conn.close()
+        elif clientMessage == sha256(cmd_END_DAY.encode()).hexdigest():
+            # Receving day_end.csv from server
+            dataReceived = encryptedPayloadReceived(
+                pickle.loads(AESDecrypt(receive_data(conn), AESSessionKey)))
+            # Verifying data and storing it on server
+            if VerifierHMACDSIG(dataReceived[0], dataReceived[1], dataReceived[2], dataReceived[3], dataReceived[4], clientDHPublicKey):
+                filename = default_save_base +  "127.0.0.1" + "-" + now.strftime("%Y-%m-%d_%H%M")
+                dest_file = open(os.path.join(dirname, "database/") + filename, "wb+")
+                
+                # If encrypted key file does not exist
+                if not os.path.exists("database/key"):
+                    random_key = get_random_bytes(32)
+                    info_encrypted = AESEncrypt(dataReceived[0], random_key)
+                    dest_file.write(info_encrypted)
+                    encryptedKey = AESEncrypt(random_key, passwd)
+                    with open(os.path.join(dirname, "database/key"), 'wb+') as f:
+                        f.write(encryptedKey)
+                        f.close()
+                # If it exists, decrypt it and get key to encrypt file
+                else:
+                    key = open(os.path.join(dirname, "database/key"), 'rb+').read()
+                    decryptedKey = AESDecrypt(key, passwd)
+                    dest_file.write(AESEncrypt(dataReceived[0], decryptedKey))
+                    dest_file.close()
+            else: conn.close()
+        else: 
+            print(f"The message from the client is invalid or has been tampered with. Closing connection from client {addr[0]}:{addr[1]}...")
+            conn.close()
+    except Exception as e:
+        print(e)
+        print(f"{redHighlight}Client {addr[0]}:{addr[1]}{normalText} has disconnected or time out from the server.")
 
 # Function to start the server
 def start(passwd):
