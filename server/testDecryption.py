@@ -1,3 +1,5 @@
+from os.path import dirname
+from PySide6 import QtGui
 import bcrypt
 import os
 from hashlib import sha256
@@ -9,6 +11,11 @@ from Cryptodome.Cipher import AES
 from Cryptodome.Random import get_random_bytes
 # Importing Pad and Unpad Modules to perform pad and unpad operations
 from Cryptodome.Util.Padding import pad, unpad
+from PySide6.QtWidgets import * 
+from PySide6.QtCore import *
+import sys 
+# Define relative path name
+dirname = os.path.dirname(__file__)
 
 # AES Encrypt for static data stored on server
 def AESEncrypt(text, key, BLOCK_SIZE = 16):
@@ -28,20 +35,60 @@ def AESDecrypt(cipher_text_bytes, key, BLOCK_SIZE = 16):
     return decrypted_text_bytes
 
 def selectFile():
-    dirname = os.path.dirname(__file__)
     files = os.listdir(os.path.dirname(os.path.join(os.path.dirname(__file__), f"database/")))
     files.remove('key')
     files.remove('passwd.txt')
     for file in files:
         print(file)
     choice = input("Please enter in a choice of file: ")
-    filepath = os.path.join(os.path.dirname(os.path.join(dirname, f"database/{choice}")))
+    filepath = os.path.join(dirname + "/database/", choice)
     with open(filepath, "rb") as f:
         data = f.read()
-        encryptedKey = open(r"C:\Work\acgfuck\server\database\key", 'rb').read()
+        encryptedKey = open(r"C:\Work\acgfuck\server\database\key", 'rb+').read()
         decryptedKey = AESDecrypt(encryptedKey, sha256('passwordpassword1'.encode('utf-8')).digest())
         decryptedData = AESDecrypt(data, decryptedKey)
         print(decryptedData.decode())
 
+class Widget(QWidget):
+    def __init__(self, *args, **kwargs):
+        QWidget.__init__(self, *args, **kwargs)
+        # Setting style sheet
+        style_ = open(os.path.join(dirname, 'style.qss'), "r").read()
+        self.setStyleSheet(style_)
+        self.setWindowIcon(QtGui.QIcon(os.path.join(dirname, 'menu.png')))
+        # Settomg window title
+        self.setWindowTitle('View Previous Reports')  
+        hlay = QHBoxLayout(self)
+        self.treeview = QTreeView()
+        self.listview = QListView()
+        hlay.addWidget(self.treeview)
+        hlay.addWidget(self.listview)
+
+        path = dirname
+
+        self.dirModel = QFileSystemModel()
+        self.dirModel.setRootPath(QDir.rootPath())
+        self.dirModel.setFilter(QDir.NoDotAndDotDot | QDir.AllDirs)
+
+        self.fileModel = QFileSystemModel()
+        self.fileModel.setFilter(QDir.NoDotAndDotDot |  QDir.Files)
+
+        self.treeview.setModel(self.dirModel)
+        self.listview.setModel(self.fileModel)
+
+        self.treeview.setRootIndex(self.dirModel.index(path))
+        self.listview.setRootIndex(self.fileModel.index(path))
+
+        self.treeview.clicked.connect(self.on_clicked)
+
+    def on_clicked(self, index):
+        path = self.dirModel.fileInfo(index).absoluteFilePath()
+        self.listview.setRootIndex(self.fileModel.setRootPath(path))
+
+
 if __name__ == '__main__':
-    selectFile()
+    app = QApplication(sys.argv)
+    w = Widget()
+    w.resize(1200, 400)
+    w.show()
+    sys.exit(app.exec_())
