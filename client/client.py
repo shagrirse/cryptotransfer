@@ -20,16 +20,16 @@ from Cryptodome.Signature import pkcs1_15
 from Cryptodome.PublicKey import RSA
 # Importing pickle Module for serialising Python objects
 import pickle
-from PySide6 import QtGui
 # Importing Diffie-Hellman Key Exchange to perform Diffle-Hellman Key Exchange operations
 import pyDH
 # Importing Cryptodome Hash Module for generating Digital Signatures
 from Cryptodome.Hash import SHA512
-# Importing system module to get system arguments for PyQt
+# Importing system Module to get system arguments for PyQt
 import sys
-# Importing OS for paths
+# Importing os Module for paths
 import os
-# Importing all relevant PyQt modules for Graphical User Interface (GUI)
+# Importing all relevant PyQt Modules for Graphical User Interface (GUI)
+from PySide6 import QtGui
 from PySide6.QtWidgets import (
     QMessageBox, QPushButton, QApplication, QVBoxLayout, QDialog)
 
@@ -58,6 +58,7 @@ clientSocket.connect(ADDRESS)
 DiffieHellmanKey = pyDH.DiffieHellman(5)
 # Defining relative path
 dirname = os.path.dirname(__file__)
+
 
 # A function that sends information to the server
 def send(message, s):
@@ -168,7 +169,6 @@ def encryptedPayloadSent(AESSessionKey):
         data = file.read()
 
     # A function that generates a HMAC-SHA512 of a file
-
     def HMACOperation():
         # HMAC key is the same as the AES session key
         HMACKey = diffieHellmanKeyExchangeCalculations(serverDHPublicKey)
@@ -178,7 +178,6 @@ def encryptedPayloadSent(AESSessionKey):
         return HMAC.hexdigest()
 
     # A function that signs a AES Encrypted Data
-
     def digitalSignatureOperation():
         # Generating the key pair for client
         clientRSAKeyPair = RSA.generate(2048)
@@ -203,9 +202,8 @@ def encryptedPayloadSent(AESSessionKey):
     # Returning the encrypted pickled payload and AES session key
     return AESEncrypt(pickle.dumps(payload), AESSessionKey)
 
+
 # A function that extracts all the encrypted data from a data class called serverEncryptedPayload
-
-
 def encryptedPayloadReceived(serverEncryptedPayload):
     # Instantiating the serverEncryptedPayload class to clientPayload variable
     clientPayload = clientEncryptedPayload(serverEncryptedPayload.encryptedFile, serverEncryptedPayload.HMAC,
@@ -220,7 +218,6 @@ def HMAC_DS_Verifier(encryptedDataReceived, HMACReceived, serverDigest, serverPu
     data = encryptedDataReceived
 
     # A function that verifies the HMAC of the data received from server
-
     def HMACVerifier():
         # HMAC key is the same as the AES session key
         HMACKey = diffieHellmanKeyExchangeCalculations(serverDHPublicKey)
@@ -235,7 +232,6 @@ def HMAC_DS_Verifier(encryptedDataReceived, HMACReceived, serverDigest, serverPu
             return False
 
     # A function that verifies the signature of the data received from server
-
     def digitalSignatureVerifier():
         # Verifying the signature of data received from Server with the server public key of the RSA key pair
         verifier = pkcs1_15.new(RSA.import_key(serverPublicKey))
@@ -296,7 +292,7 @@ def keyExchanges():
         print("Server's RSA public key has been received from the server!")
         # # Extracting server RSA public key
         receivedServerPublicRSAKey = RSA.import_key(receivedServerPublicRSAKey)
-        # Return the server RSA public key
+        # Returning the server RSA public key
         return receivedServerPublicRSAKey
 
     # A function that receives server public key from server to perform Diffle-Hellman Key Exchange
@@ -363,32 +359,37 @@ def keyExchanges():
 
     # Getting AES Session Key
     AESSessionKey = diffieHellmanKeyExchangeCalculations(serverDHPublicKey)
+
+    # Returning the AES session key and server Diffie-Hellman public key
     return AESSessionKey, serverDHPublicKey
 
 
 # Main program
 class Form(QDialog):
 
+    # A function that initialises the client GUI
     def __init__(self, parent=None):
         super(Form, self).__init__(parent)
+        # Setting GUI title
         self.setWindowTitle("SPAM Client")
         # Setting style sheet
         style_ = open(os.path.join(dirname, 'style.qss'), "r").read()
         self.setStyleSheet(style_)
         self.setWindowIcon(QtGui.QIcon(os.path.join(dirname, "menu.png")))
-        # Create widgets
+        # Creating widgets
         self.menuRequest = QPushButton("Get Menu From Server")
         self.send = QPushButton("Send Day End Report")
-        # Create layout and add widgets
+        # Creating layout and adding widgets
         layout = QVBoxLayout()
         layout.addWidget(self.menuRequest)
         layout.addWidget(self.send)
-        # Set dialog layout
+        # Setting dialog layout
         self.setLayout(layout)
         # Button click events
         self.menuRequest.clicked.connect(self.requestMenu)
         self.send.clicked.connect(self.sendDayEnd)
 
+    # A function that gets the menu from the server
     def requestMenu(self):
         # Receving menu.txt from the server
         dataReceived = encryptedPayloadReceived(
@@ -396,7 +397,7 @@ class Form(QDialog):
         # Decrypting encrypted menu.txt from server
         HMAC_DS_Verifier(
             dataReceived[0], dataReceived[1], dataReceived[2], dataReceived[3], dataReceived[4])
-        # Set popup icon and initialize message box as well as stylesheet
+        # Setting popup icon and initialising message box as well as stylesheet
         style_ = open(os.path.join(dirname, 'style.qss'), "r").read()
         msg = QMessageBox()
         msg.setWindowTitle("Success!")
@@ -406,10 +407,11 @@ class Form(QDialog):
         msg.exec_()
         self.close()
 
+    # A function that sends the day_end.csv from the server
     def sendDayEnd(self):
         # Sending day_end.csv file to server
         dataToServer(encryptedPayloadSent(AESSessionKey))
-        # Set popup icon and initialize message box as well as stylesheet
+        # Setting popup icon and initialising message box as well as stylesheet
         style_ = open(os.path.join(dirname, 'style.qss'), "r").read()
         msg = QMessageBox()
         msg.setWindowTitle("Success!")
@@ -421,16 +423,17 @@ class Form(QDialog):
 
 
 if __name__ == '__main__':
+    # Calling keyExchanges function to get the AES session key and server Diffie-Hellman public key
     keys = keyExchanges()
     AESSessionKey = keys[0]
     serverDHPublicKey = keys[1]
-    # Create the Qt Application
+    # Creating the Qt Application
     app = QApplication(sys.argv)
     # Create and show the form
     form = Form()
     form.resize(400, 150)
     form.show()
-    # Run the main Qt loop
+    # Running the main Qt loop
     sys.exit(app.exec_())
 
 # Closing the connection between the server and the client
