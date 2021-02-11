@@ -85,10 +85,10 @@ def selectFile():
 
                 # Indicating which file the user is viewing
                 print(
-                    "\n=================================================================")
-                print(f"Viewing {choice} File Day End Information")
+                    "\n=====================================================================")
+                print(f"Viewing {choice} File Day Closing Information")
                 print(
-                    "=================================================================")
+                    "=====================================================================")
 
                 # Opening the file and read the file after decryption
                 with open(filepath, "rb") as f:
