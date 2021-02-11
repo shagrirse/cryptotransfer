@@ -1,4 +1,5 @@
 import bcrypt
+import os
 from hashlib import sha256
 from Cryptodome.Cipher import AES
 from Cryptodome.Random import get_random_bytes
@@ -26,10 +27,21 @@ def AESDecrypt(cipher_text_bytes, key, BLOCK_SIZE = 16):
     # Print the message in UTF8 (normal readable way
     return decrypted_text_bytes
 
-with open(r"C:\Work\acgfuck\server\database\result-127.0.0.1-2021-02-11_0859", "rb") as f:
-    data = f.read()
-    print(data)
-    encryptedKey = open(r"C:\Work\acgfuck\server\database\key", 'rb').read()
-    decryptedKey = AESDecrypt(encryptedKey, sha256('passwordpassword1'.encode('utf-8')).digest())
-    decryptedData = AESDecrypt(data, decryptedKey)
-    print(decryptedData)
+def selectFile():
+    dirname = os.path.dirname(__file__)
+    files = os.listdir(os.path.dirname(os.path.join(os.path.dirname(__file__), f"database/")))
+    files.remove('key')
+    files.remove('passwd.txt')
+    for file in files:
+        print(file)
+    choice = input("Please enter in a choice of file: ")
+    filepath = os.path.join(os.path.dirname(os.path.join(dirname, f"database/{choice}")))
+    with open(filepath, "rb") as f:
+        data = f.read()
+        encryptedKey = open(r"C:\Work\acgfuck\server\database\key", 'rb').read()
+        decryptedKey = AESDecrypt(encryptedKey, sha256('passwordpassword1'.encode('utf-8')).digest())
+        decryptedData = AESDecrypt(data, decryptedKey)
+        print(decryptedData.decode())
+
+if __name__ == '__main__':
+    selectFile()
