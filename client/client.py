@@ -24,12 +24,15 @@ import pickle
 import pyDH
 # Importing Cryptodome Hash Module for generating Digital Signatures
 from Cryptodome.Hash import SHA512
-# Import system module to get system arguments for PyQt
+# Importing system module to get system arguments for PyQt
 import sys
-# Import all relevant PyQt modules
-from PySide6.QtWidgets import (QMessageBox, QPushButton, QApplication, QVBoxLayout, QDialog)
+# Importing all relevant PyQt modules for Graphical User Interface (GUI)
+from PySide6.QtWidgets import (
+    QMessageBox, QPushButton, QApplication, QVBoxLayout, QDialog)
 # Import OS for paths
 import os
+
+
 # Font Styles (Colours and Colour of Background)
 # Red Bold Font with Red Background
 redHighlight = "\x1b[1;37;41m"
@@ -56,12 +59,14 @@ DiffieHellmanKey = pyDH.DiffieHellman(5)
 # Defining relative path
 dirname = os.path.dirname(__file__)
 
+
 # A function that sends information to the server
 def send(message, s):
     # Serialising the information to be sent to the server
     msg = pickle.dumps(message)
     # Sending information to the server
     s.send(msg)
+
 
 # A function that receives information from the server
 def receive_data(s):
@@ -103,15 +108,16 @@ def AESEncrypt(plaintext, key, BLOCK_SIZE=16):
 # A function that performs AES Decryption Operation
 # AES block size is 128 bits or 16 bytes
 def AESDecrypt(cipher_text_bytes, key, BLOCK_SIZE=16):
-    # Extracting AES Encrypted Data, 
+    # Extracting AES Encrypted Data,
     # Extracting AES Nonce
-    cipher_text_bytes, nonce = cipher_text_bytes[:-12] , cipher_text_bytes[-12:]
+    cipher_text_bytes, nonce = cipher_text_bytes[:-12], cipher_text_bytes[-12:]
     # Instantiating AES cipher with the same key and mode
     cipher = AES.new(key, AES.MODE_CTR, nonce=nonce)
     # Decrypting data
     decrypted_text_bytes = unpad(cipher.decrypt(cipher_text_bytes), BLOCK_SIZE)
     # Returning AES Unencrypted Data in bytes
     return decrypted_text_bytes
+
 
 # A function that performs Diffle-Hellman Key Exchange Calculations
 def diffieHellmanKeyExchangeCalculations(serverDHPublicKey):
@@ -121,6 +127,7 @@ def diffieHellmanKeyExchangeCalculations(serverDHPublicKey):
     AESSessionKey = sha256(sessionKey.encode()).digest()
     # Returning the value of AES Session Key
     return AESSessionKey
+
 
 # A function that receives menu.txt file from the server
 def dataFromServer():
@@ -198,9 +205,12 @@ def encryptedPayloadSent(AESSessionKey):
     return AESEncrypt(pickle.dumps(payload), AESSessionKey)
 
 # A function that extracts all the encrypted data from a data class called serverEncryptedPayload
+
+
 def encryptedPayloadReceived(serverEncryptedPayload):
     # Instantiating the serverEncryptedPayload class to clientPayload variable
-    clientPayload = clientEncryptedPayload(serverEncryptedPayload.encryptedFile, serverEncryptedPayload.HMAC, serverEncryptedPayload.digitalSignature, serverEncryptedPayload.clientPublicKey, serverEncryptedPayload.digest)
+    clientPayload = clientEncryptedPayload(serverEncryptedPayload.encryptedFile, serverEncryptedPayload.HMAC,
+                                           serverEncryptedPayload.digitalSignature, serverEncryptedPayload.clientPublicKey, serverEncryptedPayload.digest)
     # Returning the payload encrypted data received from the server
     return clientPayload.encryptedFile, clientPayload.HMAC, clientPayload.digest, clientPayload.clientPublicKey, clientPayload.digitalSignature
 
@@ -262,7 +272,8 @@ def HMAC_DS_Verifier(encryptedDataReceived, HMACReceived, serverDigest, serverPu
         print(f"{redHighlight}Warning!{normalText} File content might be modified. Connection to server is terminated. Relaunch the program to get the menu again.")
         clientSocket.close()
 
-# Function to exchange all public keys and generate a session key to initialize session with the server
+
+# A function that exchanges all public keys and generate a session key to initialise a session with the server
 def keyExchanges():
 
     # A function that generates client RSA key pair
@@ -334,7 +345,8 @@ def keyExchanges():
         # Sending information to the server
         send(clientDHPublicKey, clientSocket)
         # Indicating that the data has been sent to the server
-        print("The encrypted client's Diffie-Hellman public key has been sent to the server.")
+        print(
+            "The encrypted client's Diffie-Hellman public key has been sent to the server.")
 
     # Getting client private key for decryption operations
     sessionClientRSAPrivateKey = generateClientRSAKeyPair()
@@ -354,9 +366,10 @@ def keyExchanges():
     AESSessionKey = diffieHellmanKeyExchangeCalculations(serverDHPublicKey)
     return AESSessionKey, serverDHPublicKey
 
+
 # Main program
 class Form(QDialog):
-    
+
     def __init__(self, parent=None):
         super(Form, self).__init__(parent)
         self.setWindowTitle("SPAM Client")
@@ -375,7 +388,7 @@ class Form(QDialog):
         # Button click events
         self.menuRequest.clicked.connect(self.requestMenu)
         self.send.clicked.connect(self.sendDayEnd)
-        
+
     def requestMenu(self):
         # Receving menu.txt from the server
         dataReceived = encryptedPayloadReceived(
