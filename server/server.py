@@ -419,8 +419,7 @@ def user_login():
         return password_input, passwd
     # Trying to open file
     if os.path.exists(os.path.join(dirname, "database/passwd.txt")):
-        file = ((open(os.path.join(dirname, "database/passwd.txt"), "r+")
-                 ).readline()).encode('utf-8')
+        file = ((open(os.path.join(dirname, "database/passwd.txt"), "r+")).readline()).encode('utf-8')
         password_input, passwd = passwordInput()
         while True:
             # If the user has entered an invalid password, the codes below will execute
