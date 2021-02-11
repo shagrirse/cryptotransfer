@@ -1,6 +1,6 @@
-# Importing get_random_bytes Module to get random bytes suitable for cryptographic use
+# Importing get_random_bytes function to get random bytes suitable for cryptographic use
 from Cryptodome.Random import get_random_bytes
-# Importing Pad and Unpad Modules to perform pad and unpad operations
+# Importing Pad and Unpad functions to perform pad and unpad operations
 from Cryptodome.Util.Padding import pad, unpad
 # Importing socket Module to perform socket operations
 import socket
