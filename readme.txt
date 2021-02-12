@@ -36,6 +36,7 @@ Client Sub-Directory Tree:
 client.py
 day_end.csv
 menu.png
+success.png
 style.qss
 menu_today.txt (To be created after the client requests the menu from the server)
 
