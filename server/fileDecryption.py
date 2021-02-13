@@ -108,7 +108,7 @@ def selectFile():
                 break
     else:
         # If the user has not launched the server before, the system will prompt the user to launch the server first
-        print("You have not launched the server before. Please launch the server to setup your password.")
+        print("\nYou have not launched the server before. Please launch the server to setup your password.")
 
 
 # Main program

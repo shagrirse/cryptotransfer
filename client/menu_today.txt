@@ -1,5 +1,0 @@
-Menu
----
-1 Sweet popcorn
-2 Salty popcorn
-3 Truffle fries

@@ -419,7 +419,8 @@ def user_login():
         return password_input, passwd
     # Trying to open file
     if os.path.exists(os.path.join(dirname, "database/passwd.txt")):
-        file = ((open(os.path.join(dirname, "database/passwd.txt"), "r+")).readline()).encode('utf-8')
+        file = ((open(os.path.join(dirname, "database/passwd.txt"), "r+")
+                 ).readline()).encode('utf-8')
         password_input, passwd = passwordInput()
         while True:
             # If the user has entered an invalid password, the codes below will execute
@@ -444,7 +445,6 @@ def user_login():
         # Getting a password input from the user
         password = input("Please enter a password: ")
         # The password must have more than 12 characters but lesser than 31, and must have a number
-        # For this example, the password will be "passwordpassword1"
         while len(password) < 12 or len(password) > 30 or not any(map(lambda x: x.isnumeric(), [i for i in password])):
             password = input(
                 "Error. Please enter a valid password (More than 12 characters but less than 30. Must contain a number): ")
@@ -462,5 +462,5 @@ def user_login():
             start(passwd)
 
 
-# Server's password: passwordpassword1
+# Calling the user_login function to initiate user login authentication on the server
 user_login()

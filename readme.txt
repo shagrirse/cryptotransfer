@@ -20,7 +20,7 @@ Notes:
 
 1. You might like to start Wireshark to listen to the localhost (IP Address: 127.0.0.1) interface before running client.py.
 2. Both server.py and client.py files require several third party Python packages to function properly. To install the appropriate libraries, open a terminal (Mac or Linux) or Command Prompt / Windows PowerShell (Windows) and type "pip install -r requirements.txt" with the working directory being the main folder.
-3. By program design, the server is password protected. Please use the following password "passwordpassword1" to access the server.
+3. By program design, the server is set to be password protected. You will be need to set a server password when you launch the server for the first time.
 
 File Directory Tree:
 
